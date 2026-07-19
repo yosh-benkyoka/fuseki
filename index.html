@@ -180,8 +180,6 @@
 
   <!-- ========== setup ========== -->
   <div id="setupView" class="setup hidden">
-    <h2>盤をひらく</h2>
-    <p class="lede">年齢は輪に、外周が子ども時代、真ん中がいま。<br>まず、あなたの名前と年齢を。テーマは盤をひらいてから置けます。</p>
     <div class="field"><label for="suName">名前</label><input type="text" id="suName" placeholder="例：兼松佳宏"></div>
     <div class="field"><label for="suAge">いまの年齢</label><input type="number" id="suAge" min="15" max="99" placeholder="例：39"></div>
     <p class="hint">盤をひらいたら、「＋テーマ」から東西南北にテーマを置いていきます。テーマ探しに迷ったら、あとで「テーマを見つける」も使えます。</p>
@@ -473,7 +471,7 @@ function candBoxHTML(){
     : `<p class="emptyNote" style="margin-top:12px">まだ候補はありません。上の問いから、思いついた名詞を足していきましょう。</p>`;
   return `
     <div class="addRow">
-      <input type="text" id="candInput" placeholder="候補を名詞で（例：キットカット、空海、〇〇さん）">
+      <input type="text" id="candInput" placeholder="候補を名詞で（例：小説、ラジオ、絶景、空海、家具）">
       <button id="candAdd">候補を加える</button>
     </div>
     ${list}`;
@@ -681,7 +679,7 @@ function readings(){
     }
     const ages = themeStones(dir.id);
     if(ages.length>=2){
-      const last = ages[ages.length-1], gap = maxAge() - last;
+      const last = ages[ages.length-1], gap = state.age - last;   // 本人のいまの年齢を基準に
       if(gap>=3 && !shape){   // 型が立つ前でも、長い空白は気づける
         out.push({cls:"", html:`<b>${esc(label)}</b>の最後の石は${last}歳。しばらく空白がつづいています。`});
       }
@@ -752,7 +750,7 @@ function render(){
 }
 
 function addThemeTo(dir){
-  const v = prompt(DIRS[dir].name + "の方角に置くテーマ（基本は名詞で）");
+  const v = prompt("テーマ（基本は名詞で）");
   if(v===null) return;
   const t = v.trim(); if(!t) return;
   state.themes[dir] = t; save(); render();
