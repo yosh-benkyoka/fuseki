@@ -227,13 +227,13 @@
 
 (function(){
   const KEY="fuseki-view-pref";
-  function apply(v){
+  function apply(v, noSave){
     document.body.classList.toggle("view-pc", v==="pc");
     document.body.classList.toggle("view-mob", v==="mob");
     const toPc=document.getElementById("toPc"), toMob=document.getElementById("toMob");
     if(toPc) toPc.style.display = v==="mob" ? "block":"none";
     if(toMob) toMob.style.display = v==="pc" ? "block":"none";
-    try{ localStorage.setItem(KEY, v); }catch(e){}
+    if(!noSave){ try{ localStorage.setItem(KEY, v); }catch(e){} }
     window.scrollTo(0,0);
   }
   let pref=null;
@@ -241,8 +241,11 @@
   if(pref!=="pc" && pref!=="mob"){
     pref=(window.matchMedia && window.matchMedia("(max-width: 640px)").matches) ? "mob":"pc";
   }
+  // ?seed=... はPC版のテスト盤なので、seed指定時はPC版を表示（好みは書き換えない）
+  let seeded=false;
+  try{ seeded=/[?&#]seed=/.test(location.search+location.hash); }catch(e){}
   window.fusekiSwitch=apply;
-  function init(){ apply(pref); }
+  function init(){ apply(seeded ? "pc" : pref, seeded); }
   if(document.readyState==="loading") document.addEventListener("DOMContentLoaded", init);
   else init();
 })();
@@ -273,7 +276,35 @@ function esc(s){return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&l
 function uid(){return Math.random().toString(36).slice(2,9);}
 
 /* ---------------- persistence ---------------- */
+// テスト用シード：?seed=yosh（または #seed=yosh）で決まった盤を一発再現
+function seedFromURL(){
+  let key=null;
+  try{
+    const p=new URLSearchParams(location.search);
+    key=p.get("seed") || (location.hash.match(/seed=([a-z0-9_-]+)/i)||[])[1] || null;
+  }catch(e){}
+  if(!key) return null;
+  const SEEDS={
+    yosh:{
+      name:"兼松佳宏", age:46,
+      themes:["ソーシャルデザイン","空海","言葉遊び","ワークショップ"], // 0上 1下 2左 3右
+      byDir:{
+        0:[20,24,25,26,30,32,36,39,42,44,46],
+        1:[24,26,28,32,36,37,38,39,40,42,45,46],
+        2:[20,26,30,36,38,39],
+        3:[30,31,37,39,44,45,46]
+      }
+    }
+  };
+  const sd=SEEDS[key.toLowerCase()]; if(!sd) return null;
+  const stones=[];
+  Object.keys(sd.byDir).forEach(d=> sd.byDir[d].forEach(age=> stones.push({id:uid(), dir:+d, age, note:""})));
+  return { name:sd.name, age:sd.age, themes:sd.themes.slice(), stones,
+           prepDone:true, prepStep:0, scan:{}, journal:{}, cands:[] };
+}
 async function load(){
+  const seeded=seedFromURL();
+  if(seeded){ state=seeded; storageOk=true; route(); return; }  // シード時は保存を読まない
   try{
     const r = await window.storage.get(KEY);
     if(r && r.value){ state = JSON.parse(r.value); storageOk = true; }
