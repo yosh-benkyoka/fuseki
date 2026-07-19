@@ -86,8 +86,8 @@
 </head>
 <body>
 
-<button class="viewToggle" id="toMob" onclick="window.fusekiSwitch('mob')">モバイル版で見る</button>
-<button class="viewToggle" id="toPc" onclick="window.fusekiSwitch('pc')">PC版で見る</button>
+<button class="viewToggle" id="toMob" onclick="window.fusekiSwitch('mob')">スマホ版ではじめる</button>
+<button class="viewToggle" id="toPc" onclick="window.fusekiSwitch('pc')">PC版ではじめる</button>
 
 <div id="pcRoot">
 
@@ -104,9 +104,9 @@
   <!-- ========== setup ========== -->
   <div id="setupView" class="setup hidden">
     <div class="field"><label for="suName">名前</label><input type="text" id="suName" placeholder="例：兼松佳宏"></div>
-    <div class="field"><label for="suAge">いまの年齢</label><input type="number" id="suAge" min="15" max="99" placeholder="例：39"></div>
-    <p class="hint">盤をひらいたら、「＋テーマ」から東西南北にテーマを置いていきます。テーマ探しに迷ったら、あとで「テーマを見つける」も使えます。</p>
-    <div class="btnRow"><button class="primary" id="suGo">盤をひらく</button></div>
+    <div class="field"><label for="suAge">いまの年齢</label><input type="number" id="suAge" min="15" max="99" placeholder="例：46"></div>
+    <p class="hint">盤の四辺に表示されている「＋テーマ」から、テーマを置いていきます。テーマが思いつかない方は、「テーマを見つける」へ進んでください</p>
+    <div class="btnRow"><button class="primary" id="suGo">はじめる</button></div>
   </div>
 
   <!-- ========== prep（テーマをみつける） ========== -->
@@ -114,8 +114,7 @@
     <div class="prep">
       <div class="prepHead">
         <div>
-          <div class="prepStepNo">テーマをみつける</div>
-          <h2 id="prepTitle">痕跡をたどり、候補をあつめる</h2>
+          <h2 id="prepTitle">テーマを見つける</h2>
         </div>
         <button class="ghost" id="prepSkip">盤に戻る</button>
       </div>
@@ -145,7 +144,6 @@
         <div class="panel">
           <h2>テーマ</h2>
           <div id="themeList"></div>
-          <p class="hint">盤の「＋テーマ」を押すと、その方角にテーマを置けます。基本は名詞で。</p>
         </div>
 
         <div class="panel">
@@ -198,9 +196,9 @@
 
   <!-- setup -->
   <div id="m_setupView" class="setup">
-    <div class="q">いま、何歳ですか</div>
+    <div class="q">年齢は？</div>
     <div><input class="ageInput" id="m_suAge" type="number" inputmode="numeric" pattern="[0-9]*" min="15" max="99" placeholder="00"><span class="ageUnit">歳</span></div>
-    <button class="primary" id="m_suGo" disabled>盤をひらく</button>
+    <button class="primary" id="m_suGo" disabled>はじめる</button>
   </div>
 
   <!-- board -->
@@ -301,7 +299,7 @@ function save(){
     try{
       await window.storage.set(KEY, JSON.stringify(state));
       storageOk = true; setSaveNote("この端末に保存されました。");
-    }catch(e){ storageOk=false; setSaveNote("この場かぎりの盤です（保存は書き出しで）。"); }
+    }catch(e){ storageOk=false; setSaveNote("ブラウザを閉じると、データは消えますのでご注意ください。"); }
   }, 500);
 }
 function setSaveNote(t){ const el=document.getElementById("saveNote"); if(el) el.textContent=t; }
@@ -493,7 +491,7 @@ function renderPrep(){
 
     <div class="prepBlock candBlock">
       <h3 class="prepQ">テーマの候補</h3>
-      <p class="qhint">テーマの候補になりそうなものを、書き留めておきましょう。（このリストは、この先もずっと残ります）</p>
+      <p class="qhint">テーマの候補になりそうなものを、書き留めておきましょう。</p>
       <div id="candArea">${candBoxHTML()}</div>
     </div>
 
@@ -677,7 +675,7 @@ function readings(){
     }
   });
   if(state.stones.length===0){
-    out.push({cls:"", html:`まだ石がありません。盤の「＋テーマ」からはじめて、いちばん古い記憶から一石。`});
+    out.push({cls:"", html:`まだ石がありません。`});
   }
   return out;
 }
@@ -702,8 +700,7 @@ function render(){
   const tl = document.getElementById("themeList");
   const rank = ranking();
   if(!rank.length){
-    tl.innerHTML = `<p class="readingEmpty">まだテーマがありません。盤の「＋テーマ」から。</p>`;
-  }else{
+    tl.innerHTML = `<p class="readingEmpty">まだテーマがありません。<br>盤の四辺の「＋テーマ」から、テーマを入力してください。基本は名詞で。</p>`;  }else{
     tl.innerHTML = rank.map((r,i)=>`
       <div class="rankRow">
         <span class="rankNo">${i+1}</span>
@@ -719,7 +716,7 @@ function render(){
   const rs = readings();
   document.getElementById("readings").innerHTML =
     rs.length ? rs.map(r=>`<div class="reading ${r.cls}">${r.html}</div>`).join("")
-              : `<p class="readingEmpty">石が増えると、盤が読みはじめます。</p>`;
+              : `<p class="readingEmpty">もう少し石が増えると、表示されます。</p>`;
 
   // 盤のイベント
   ROOT.querySelectorAll(".boardCell").forEach(c=>{
@@ -1003,11 +1000,11 @@ function boardSVG(forExport){
 
 /* ---------- reading render ---------- */
 function readingHTML(){
-  if(!state.theme) return `<div class="empty">上の「＋テーマ」から、ふりかえるテーマをひとつ。</div>`;
-  if(state.stones.length===0) return `<div class="empty">帯にふれて、いちばん古い記憶から一石。</div>`;
+  if(!state.theme) return `<div class="empty">上の「＋テーマ」から、テーマをひとつ入力してください。基本は名詞で。</div>`;
+  if(state.stones.length===0) return `<div class="empty">まだ石がありません</div>`;
   const shape=shapeOf();
   if(shape) return `<span class="rt">${SHAPE_NAME[shape]}</span><div class="rm"><b>${esc(state.theme)}</b>——${SHAPE_MSG[shape]}</div>`;
-  return `<div class="rm">石が増えると、盤が読みはじめます。いまは${state.stones.length}石。</div>`;
+  return `<div class="rm">もう少し石が増えると、表示されます。</div>`;
 }
 
 /* ---------- render ---------- */
