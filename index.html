@@ -608,6 +608,17 @@ const SHAPE_MSG = {
 };
 const SHAPE_NAME = { triangle:"三角型", inverse:"逆三角型", square:"方形型", zigzag:"ジグザグ型" };
 
+// 型とは別の、いちばんカジュアルに出る読み：還ってくる間隔が縮まっているか
+function narrowing(dir){
+  const ages = themeStones(dir);
+  if(ages.length<4) return null;
+  const iv=[]; for(let i=1;i<ages.length;i++) iv.push(ages[i]-ages[i-1]);
+  const early = iv.slice(0, iv.length-2), late = iv.slice(-2);
+  const mean=a=>a.reduce((x,y)=>x+y,0)/a.length;
+  if(early.length && mean(late) < mean(early)*0.7) return {early, late};
+  return null;
+}
+
 function shapeOf(dir){
   const bs = bands();
   const nowBand = bandOf(state.age);
@@ -653,19 +664,24 @@ function ranking(){
 
 function readings(){
   const out = [];
-  let anyTheme = false, anyShape = false;
+  let anyTheme = false, anyRead = false;
   DIRS.forEach(dir=>{
     const label = state.themes[dir.id]; if(!label) return;
     anyTheme = true;
     const shape = shapeOf(dir.id);
     if(shape){
-      anyShape = true;
+      anyRead = true;
       out.push({cls:"", html:`<b>${esc(label)}</b>——<span class="shapeTag">${SHAPE_NAME[shape]}</span><br>${SHAPE_MSG[shape]}`});
+    }
+    const nw = narrowing(dir.id);
+    if(nw){
+      anyRead = true;
+      out.push({cls:"", html:`<b>${esc(label)}</b>——還ってくる間隔が縮まってきています（${nw.early.map(String).join("・")}年 → ${nw.late.map(String).join("・")}年）。そのテーマは、道になりかけているかもしれません。`});
     }
   });
   if(state.stones.length===0){
     out.push({cls:"", html:`まだ石がありません。`});
-  }else if(anyTheme && !anyShape){
+  }else if(anyTheme && !anyRead){
     out.push({cls:"", html:`もう少し石が増えると、表示されます。`});
   }
   return out;
@@ -990,11 +1006,23 @@ function boardSVG(forExport){
 }
 
 /* ---------- reading render ---------- */
+function narrowing(){
+  const ages=themeAges();
+  if(ages.length<4) return null;
+  const iv=[]; for(let i=1;i<ages.length;i++) iv.push(ages[i]-ages[i-1]);
+  const early=iv.slice(0, iv.length-2), late=iv.slice(-2);
+  const mean=a=>a.reduce((x,y)=>x+y,0)/a.length;
+  if(early.length && mean(late) < mean(early)*0.7) return {early, late};
+  return null;
+}
 function readingHTML(){
   if(!state.theme) return `<div class="empty">上の「＋テーマ」から、テーマをひとつ入力してください。基本は名詞で。</div>`;
   if(state.stones.length===0) return `<div class="empty">まだ石がありません</div>`;
-  const shape=shapeOf();
-  if(shape) return `<span class="rt">${SHAPE_NAME[shape]}</span><div class="rm"><b>${esc(state.theme)}</b>——${SHAPE_MSG[shape]}</div>`;
+  const shape=shapeOf(), nw=narrowing();
+  let html="";
+  if(shape) html+=`<span class="rt">${SHAPE_NAME[shape]}</span><div class="rm"><b>${esc(state.theme)}</b>——${SHAPE_MSG[shape]}</div>`;
+  if(nw) html+=`<div class="rm"${shape?' style="margin-top:8px"':''}><b>${esc(state.theme)}</b>——還ってくる間隔が縮まってきています（${nw.early.map(String).join("・")}年 → ${nw.late.map(String).join("・")}年）。そのテーマは、道になりかけているかもしれません。</div>`;
+  if(html) return html;
   return `<div class="rm">もう少し石が増えると、表示されます。</div>`;
 }
 
