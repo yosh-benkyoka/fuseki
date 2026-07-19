@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>布石マンダラ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#ffffff; --bg:#f4f4f5; --ink:#17130f; --ink-2:#5b6472;
+    --shu:#cf4b2f; --mut:#8b93a6; --line:#dfe3ea; --grid:#c9ced8;
+    --sans:"Zen Kaku Gothic New","Hiragino Kaku Gothic ProN",sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  html{-webkit-text-size-adjust:100%}
+  body{background:var(--bg);color:var(--ink);font-family:var(--sans);
+    font-size:15px;line-height:1.7;min-height:100vh;overflow-x:hidden}
+  .app{max-width:460px;margin:0 auto;padding:18px 16px 40px;min-height:100vh;display:flex;flex-direction:column}
+
+  header{text-align:center;padding-bottom:14px;margin-bottom:8px}
+  .eyebrow{font-size:10px;letter-spacing:.34em;color:var(--mut);text-transform:uppercase}
+  h1{font-weight:700;font-size:24px;letter-spacing:.16em;margin-top:2px}
+
+  /* ---------- setup ---------- */
+  .setup{margin:auto 0;display:flex;flex-direction:column;gap:20px;align-items:center;padding:30px 6px}
+  .setup .q{font-size:17px;font-weight:700;letter-spacing:.06em}
+  .ageInput{font-size:44px;font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:.02em;
+    width:2.6em;text-align:center;border:none;border-bottom:2px solid var(--ink);
+    background:transparent;color:var(--ink);font-family:var(--sans);padding:2px 0}
+  .ageInput:focus{outline:none;border-bottom-color:var(--shu)}
+  .ageUnit{font-size:18px;color:var(--ink-2);margin-left:4px}
+
+  button{font-family:var(--sans);cursor:pointer;border-radius:8px;border:1px solid var(--ink-2);
+    background:#fff;color:var(--ink);font-size:15px;letter-spacing:.06em;padding:12px 22px;transition:background .12s}
+  button:active{background:#eceef2}
+  button.primary{background:var(--ink);color:#fff;border-color:var(--ink);font-weight:700}
+  button.primary:active{background:#3a332c}
+  button:disabled{opacity:.4;pointer-events:none}
+
+  /* ---------- board ---------- */
+  .boardWrap{margin:4px 0 10px}
+  svg{display:block;width:100%;height:auto}
+  .cellHit{fill:transparent}
+  .cellHit:active{fill:rgba(23,19,15,.06)}
+  .addChip{cursor:pointer}
+  .addChip:active rect{fill:#e6e7ea}
+
+  /* ---------- reading ---------- */
+  .reading{background:#fff;border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin-top:4px;min-height:56px;
+    display:flex;flex-direction:column;justify-content:center}
+  .reading .rt{font-size:12px;letter-spacing:.1em;color:var(--ink);background:#eceef2;border-radius:999px;
+    padding:2px 10px;align-self:flex-start;margin-bottom:6px}
+  .reading .rm{font-size:14px;line-height:1.75}
+  .reading .empty{font-size:13.5px;color:var(--ink-2)}
+  .reading b{font-weight:700}
+
+  /* ---------- foot actions ---------- */
+  .foot{display:flex;gap:10px;margin-top:14px}
+  .foot button{flex:1;font-size:14px;padding:12px 8px}
+
+  /* ---------- sheet (age / stone) ---------- */
+  .veil{position:fixed;inset:0;background:rgba(23,19,15,.42);display:flex;align-items:flex-end;
+    justify-content:center;z-index:40}
+  .veil.hidden{display:none}
+  .sheet{background:#fff;width:100%;max-width:460px;border-radius:18px 18px 0 0;padding:20px 18px calc(20px + env(safe-area-inset-bottom));
+    box-shadow:0 -8px 40px rgba(23,19,15,.2);animation:rise .18s ease-out}
+  @keyframes rise{from{transform:translateY(30px);opacity:.6}to{transform:translateY(0);opacity:1}}
+  @media (prefers-reduced-motion:reduce){.sheet{animation:none}}
+  .sheet h2{font-size:15px;font-weight:700;letter-spacing:.08em;text-align:center;margin-bottom:4px}
+  .sheet .sub{font-size:12.5px;color:var(--ink-2);text-align:center;margin-bottom:16px}
+  .ageGrid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:8px}
+  .ageGrid.wide{grid-template-columns:repeat(5,1fr)}
+  .ageTile{border:1px solid var(--line);border-radius:10px;background:#fff;font-size:17px;font-weight:700;
+    font-variant-numeric:tabular-nums;padding:12px 0;text-align:center;cursor:pointer;color:var(--ink)}
+  .ageTile:active{background:#eceef2}
+  .sheetFoot{display:flex;gap:10px;margin-top:12px}
+  .sheetFoot button{flex:1}
+  .noteBtn{border-color:var(--shu);color:var(--shu)}
+
+  .hidden{display:none !important}
+  .toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%);background:var(--ink);color:#fff;
+    font-size:13px;padding:9px 16px;border-radius:999px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:60}
+  .toast.on{opacity:1}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <header>
+    <div class="eyebrow">fuseki mandala</div>
+    <h1>布石マンダラ</h1>
+  </header>
+
+  <!-- setup -->
+  <div id="setupView" class="setup">
+    <div class="q">いま、何歳ですか</div>
+    <div><input class="ageInput" id="suAge" type="number" inputmode="numeric" pattern="[0-9]*" min="15" max="99" placeholder="00"><span class="ageUnit">歳</span></div>
+    <button class="primary" id="suGo" disabled>盤をひらく</button>
+  </div>
+
+  <!-- board -->
+  <div id="mainView" class="hidden">
+    <div class="boardWrap" id="boardWrap"></div>
+    <div class="reading" id="reading"></div>
+    <div class="foot">
+      <button id="btnSave">画像に保存</button>
+      <button id="btnReset">最初から</button>
+    </div>
+  </div>
+
+</div>
+
+<!-- age / stone sheet -->
+<div id="veil" class="veil hidden">
+  <div class="sheet" id="sheet"></div>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script>
+(function(){
+"use strict";
+
+const KEY="fuseki-mobile-v1";
+let state={ age:0, theme:"", stones:[] }; // stone:{id,age,note}
+let storageOk=null, sheetBand=null, editingId=null;
+
+function esc(s){return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
+function uid(){return Math.random().toString(36).slice(2,9);}
+
+/* ---------- persistence ---------- */
+async function load(){
+  try{ const r=await window.storage.get(KEY); if(r&&r.value) state=JSON.parse(r.value); storageOk=true; }
+  catch(e){ storageOk=(typeof window.storage!=="undefined"); }
+  if(!state.stones) state.stones=[];
+  route();
+}
+let st=null;
+function save(){ clearTimeout(st); st=setTimeout(async()=>{
+  try{ await window.storage.set(KEY, JSON.stringify(state)); }catch(e){}
+},400); }
+
+/* ---------- age bands ---------- */
+function bands(){
+  const age=state.age||40;
+  const arr=[{lo:0,hi:9,label:"〜9歳"}];
+  if(age<=39){ for(let lo=10;lo<=35;lo+=5) arr.push({lo,hi:lo+4,label:lo+"–"+(lo+4)}); }
+  else{ const last=Math.max(60,Math.floor(age/10)*10);
+        for(let lo=10;lo<=last;lo+=10) arr.push({lo,hi:lo+9,label:lo+"–"+(lo+9)}); }
+  return arr;
+}
+function bandOf(a){ const bs=bands(); for(let i=0;i<bs.length;i++) if(a>=bs[i].lo&&a<=bs[i].hi) return i; return bs.length-1; }
+function themeAges(){ return state.stones.map(s=>s.age).sort((a,b)=>a-b); }
+
+/* ---------- shape reading ---------- */
+const SHAPE_NAME={triangle:"三角型",inverse:"逆三角型",square:"方形型",zigzag:"ジグザグ型"};
+const SHAPE_MSG={
+  triangle:"豊かな原体験が、あなたを呼んでいるようです。もう一度、違う形で関わり直してみませんか？",
+  inverse:"大人になってから、新しい世界が広がっているようです。さらに石を置くことにワクワクしますか？",
+  square:"なぜか周期的に、このテーマに戻されているようです。それは、すでにあなたの道なのかもしれません。",
+  zigzag:"なぜか、一気にこのテーマに戻される時期があるようです。それは、すでにあなたの道なのかもしれません。"
+};
+function shapeOf(){
+  const bs=bands(), nowBand=bandOf(state.age);
+  const counts=bs.map((b,i)=>state.stones.filter(s=>bandOf(s.age)===i).length).slice(0,nowBand+1);
+  const total=counts.reduce((a,b)=>a+b,0); if(total<3) return null;
+  let first=counts.findIndex(c=>c>0); if(first<0) return null;
+  const span=counts.slice(first), occ=span.filter(c=>c>0).length, L=span.length;
+  let gaps=0,seen=false,tail=0;
+  for(const c of span){ if(c>0){ if(seen&&tail>0) gaps++; seen=true; tail=0; } else if(seen) tail++; }
+  if(gaps>=1&&occ>=2) return "zigzag";
+  const half=Math.floor(L/2);
+  const early=span.slice(0,half).reduce((a,b)=>a+b,0);
+  const late=span.slice(L-half).reduce((a,b)=>a+b,0);
+  if(L>=3&&occ>=Math.ceil(L*0.6)&&Math.abs(early-late)<=1) return "square";
+  if(early>late) return "triangle";
+  if(late>early) return "inverse";
+  return "square";
+}
+
+/* ---------- board geometry (7×7, top-focused) ---------- */
+// 7路。線 k=0..6、上辺=k=0。テーマの列は中央 k=3。
+const S=520, LINES=7, CELL=74, EDGE=38, C=EDGE+3*CELL; // 中央列 x座標
+function bandY(i){ return EDGE + i*CELL; } // 帯iのy（上から）
+
+function boardSVG(forExport){
+  const bs=bands();
+  const rows=Math.min(bs.length, LINES-1); // 表示できる帯（上辺の下に最大6行）
+  const stoneR=22;
+  let g="";
+  g+=`<rect x="0" y="0" width="${S}" height="${S}" fill="#ffffff"/>`;
+  // 格子
+  for(let k=0;k<LINES;k++){
+    const p=EDGE+k*CELL;
+    g+=`<line x1="${p}" y1="${EDGE}" x2="${p}" y2="${S-EDGE}" stroke="#c9ced8" stroke-width="0.8"/>`;
+    g+=`<line x1="${EDGE}" y1="${p}" x2="${S-EDGE}" y2="${p}" stroke="#c9ced8" stroke-width="0.8"/>`;
+  }
+  // 帯ラベル（左端の外に小さく）
+  for(let i=0;i<rows;i++){
+    g+=`<text x="${EDGE-6}" y="${bandY(i)+4}" text-anchor="end" font-family="Zen Kaku Gothic New, sans-serif" font-size="12" fill="#8b93a6">${esc(bs[i].label)}</text>`;
+  }
+
+  // 上辺のテーマ（＝タイトル）／未設定なら「＋テーマ」
+  if(state.theme){
+    g+=`<text x="${C}" y="${EDGE-14}" text-anchor="middle" font-family="Zen Kaku Gothic New, sans-serif" font-weight="700" font-size="20" letter-spacing="3" fill="#17130f">${esc(state.theme)}</text>`;
+  }else if(!forExport){
+    g+=`<g class="addChip" data-add="1"><rect x="${C-58}" y="${EDGE-32}" width="116" height="30" rx="15" fill="#f4f4f5" stroke="#c9ced8"/>`+
+       `<text x="${C}" y="${EDGE-17}" text-anchor="middle" dominant-baseline="central" font-family="Zen Kaku Gothic New, sans-serif" font-size="14" fill="#5b6472">＋ テーマ</text></g>`;
+  }
+
+  if(state.theme){
+    // タップ範囲（各帯・中央列に、7石ぶんの幅）
+    if(!forExport){
+      for(let i=0;i<rows;i++){
+        g+=`<g class="cellHit" data-band="${i}" role="button" tabindex="0" aria-label="${esc(bs[i].label)}に石を置く">`+
+           `<rect class="cellHit" x="${EDGE}" y="${bandY(i)-CELL/2}" width="${6*CELL}" height="${CELL}"/></g>`;
+      }
+    }
+    // 石（帯ごと、中央そろえで交点に）
+    const byBand={};
+    state.stones.slice().sort((a,b)=>a.age-b.age).forEach(s=>{ const b=bandOf(s.age); (byBand[b]=byBand[b]||[]).push(s); });
+    Object.keys(byBand).forEach(bi=>{
+      const arr=byBand[bi].slice(0,7); const y=bandY(+bi);
+      const base=Math.floor((arr.length-1)/2);
+      arr.forEach((s,idx)=>{
+        const m=idx-base; const cx=C+m*CELL, cy=y;
+        g+=`<g class="stone" data-stone="${s.id}" role="button" tabindex="0" aria-label="${s.age}歳の石">`+
+           `<circle cx="${cx}" cy="${cy}" r="${stoneR}" fill="#17130f" stroke="#fff" stroke-width="2"/>`+
+           `<text x="${cx}" y="${cy}" text-anchor="middle" dominant-baseline="central" font-family="Zen Kaku Gothic New, sans-serif" font-weight="700" font-size="19" fill="#fff">${s.age}</text>`+
+           (s.note?`<circle cx="${cx}" cy="${cy+13}" r="2.4" fill="#cf4b2f"/>`:"")+
+           `</g>`;
+      });
+    });
+  }
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${S} ${S}" role="img" aria-label="布石マンダラ">${g}</svg>`;
+}
+
+/* ---------- reading render ---------- */
+function readingHTML(){
+  if(!state.theme) return `<div class="empty">上の「＋テーマ」から、ふりかえるテーマをひとつ。</div>`;
+  if(state.stones.length===0) return `<div class="empty">帯にふれて、いちばん古い記憶から一石。</div>`;
+  const shape=shapeOf();
+  if(shape) return `<span class="rt">${SHAPE_NAME[shape]}</span><div class="rm"><b>${esc(state.theme)}</b>——${SHAPE_MSG[shape]}</div>`;
+  return `<div class="rm">石が増えると、盤が読みはじめます。いまは${state.stones.length}石。</div>`;
+}
+
+/* ---------- render ---------- */
+function route(){
+  const opened=!!state.age;
+  document.getElementById("setupView").classList.toggle("hidden", opened);
+  document.getElementById("mainView").classList.toggle("hidden", !opened);
+  if(opened) render();
+}
+function render(){
+  document.getElementById("boardWrap").innerHTML=boardSVG(false);
+  document.getElementById("reading").innerHTML=readingHTML();
+  document.querySelectorAll(".addChip").forEach(el=> el.addEventListener("click", addTheme));
+  document.querySelectorAll(".cellHit[data-band]").forEach(el=>{
+    const go=()=>openAge(+el.dataset.band);
+    el.addEventListener("click", go);
+    el.addEventListener("keydown", e=>{ if(e.key==="Enter"||e.key===" "){e.preventDefault();go();} });
+  });
+  document.querySelectorAll(".stone").forEach(el=>{
+    const go=()=>openStone(el.dataset.stone);
+    el.addEventListener("click", e=>{e.stopPropagation();go();});
+    el.addEventListener("keydown", e=>{ if(e.key==="Enter"||e.key===" "){e.preventDefault();go();} });
+  });
+}
+
+function addTheme(){
+  const v=prompt("テーマ（基本は名詞で）", state.theme||"");
+  if(v===null) return;
+  state.theme=v.trim(); save(); render();
+}
+
+/* ---------- sheets ---------- */
+const veil=document.getElementById("veil"), sheet=document.getElementById("sheet");
+function openSheet(html){ sheet.innerHTML=html; veil.classList.remove("hidden"); }
+function closeSheet(){ veil.classList.add("hidden"); }
+veil.addEventListener("click", e=>{ if(e.target===veil) closeSheet(); });
+
+function openAge(band){
+  sheetBand=band; editingId=null;
+  const b=bands()[band];
+  const hi=Math.min(b.hi, state.age);
+  let tiles="";
+  for(let a=b.lo; a<=hi; a++) tiles+=`<button class="ageTile" data-age="${a}">${a}</button>`;
+  openSheet(`
+    <h2>${esc(state.theme)}</h2>
+    <div class="sub">${b.lo}〜${b.hi}歳のどのあたり？　だいたいでOK</div>
+    <div class="ageGrid">${tiles}</div>
+    <div class="sheetFoot"><button id="sheetCancel">やめる</button></div>`);
+  sheet.querySelectorAll("[data-age]").forEach(t=> t.addEventListener("click", ()=> placeStone(+t.dataset.age)));
+  document.getElementById("sheetCancel").addEventListener("click", closeSheet);
+}
+
+function placeStone(age){
+  const band=bandOf(age);
+  const inBand=state.stones.filter(s=>bandOf(s.age)===band).length;
+  if(inBand>=7){ closeSheet(); toast("この年代は7石までです"); return; }
+  state.stones.push({id:uid(), age, note:""});
+  save(); closeSheet(); render();
+}
+
+function openStone(id){
+  const s=state.stones.find(x=>x.id===id); if(!s) return;
+  editingId=id;
+  openSheet(`
+    <h2>${esc(state.theme)}・${s.age}歳</h2>
+    <div class="sub">${s.note? esc(s.note) : "この石をどうしますか"}</div>
+    <div class="sheetFoot">
+      <button class="noteBtn" id="stoneNote">ひとことメモ</button>
+      <button id="stoneDel">取り除く</button>
+    </div>
+    <div class="sheetFoot"><button id="stoneClose">とじる</button></div>`);
+  document.getElementById("stoneDel").addEventListener("click", ()=>{
+    state.stones=state.stones.filter(x=>x.id!==id); save(); closeSheet(); render();
+  });
+  document.getElementById("stoneNote").addEventListener("click", ()=>{
+    const v=prompt("そのとき、なにがあった？", s.note||""); if(v===null) return;
+    s.note=v.trim(); save(); closeSheet(); render();
+  });
+  document.getElementById("stoneClose").addEventListener("click", closeSheet);
+}
+
+/* ---------- toast ---------- */
+let tt=null;
+function toast(msg){ const el=document.getElementById("toast"); el.textContent=msg; el.classList.add("on");
+  clearTimeout(tt); tt=setTimeout(()=>el.classList.remove("on"),1600); }
+
+/* ---------- setup ---------- */
+const ageInp=document.getElementById("suAge"), suGo=document.getElementById("suGo");
+ageInp.addEventListener("input", ()=>{
+  const a=parseInt(ageInp.value,10);
+  suGo.disabled=!(a>=15&&a<=99);
+});
+suGo.addEventListener("click", ()=>{
+  const a=parseInt(ageInp.value,10); if(!(a>=15&&a<=99)) return;
+  state.age=a; save(); ageInp.blur(); route();
+});
+
+/* ---------- actions ---------- */
+document.getElementById("btnSave").addEventListener("click", ()=>{
+  const svgStr=boardSVG(true);
+  const img=new Image();
+  const blob=new Blob([svgStr],{type:"image/svg+xml;charset=utf-8"});
+  const url=URL.createObjectURL(blob);
+  img.onload=()=>{
+    const cv=document.createElement("canvas"); cv.width=1040; cv.height=1040;
+    const ctx=cv.getContext("2d"); ctx.fillStyle="#fff"; ctx.fillRect(0,0,1040,1040);
+    ctx.drawImage(img,0,0,1040,1040); URL.revokeObjectURL(url);
+    const a=document.createElement("a");
+    a.download=(state.theme||"fuseki")+"_布石マンダラ.png";
+    a.href=cv.toDataURL("image/png"); a.click();
+    toast("画像を保存しました");
+  };
+  img.onerror=()=>{ URL.revokeObjectURL(url); toast("保存に失敗しました"); };
+  img.src=url;
+});
+document.getElementById("btnReset").addEventListener("click", async()=>{
+  if(!confirm("盤をまっさらに戻します。よろしいですか？")) return;
+  state={ age:0, theme:"", stones:[] };
+  try{ await window.storage.delete(KEY); }catch(e){}
+  ageInp.value=""; suGo.disabled=true; route();
+});
+
+load();
+})();
+</script>
+</body>
+</html>
