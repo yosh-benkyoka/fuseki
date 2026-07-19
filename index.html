@@ -1,0 +1,895 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>布石マンダラ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#ffffff;      /* 盤 */
+    --bg:#f4f4f5;         /* 地 */
+    --panel:#ffffff;
+    --ink:#17130f;        /* 墨 */
+    --ink-2:#5b6472;
+    --shu:#cf4b2f;        /* 朱 */
+    --mut:#8b93a6;
+    --line:#dfe3ea;
+    --grid:#c9ced8;
+    --sans:"Zen Kaku Gothic New","Hiragino Kaku Gothic ProN",sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{-webkit-text-size-adjust:100%}
+  body{
+    background:var(--bg);
+    color:var(--ink);
+    font-family:var(--sans);
+    font-size:15px;line-height:1.75;
+    min-height:100vh;
+  }
+  .wrap{max-width:1120px;margin:0 auto;padding:28px 20px 72px}
+
+  /* ---------- header ---------- */
+  header{text-align:center;
+    border-bottom:1px solid var(--line);padding-bottom:18px;margin-bottom:26px}
+  .eyebrow{font-family:var(--sans);font-size:11px;letter-spacing:.34em;color:var(--mut);text-transform:uppercase}
+  h1{font-family:var(--sans);font-weight:700;font-size:34px;letter-spacing:.14em;color:var(--ink);line-height:1.3}
+  .sub{font-family:var(--sans);color:var(--mut);font-size:13px;letter-spacing:.12em;margin-top:2px}
+  .who{font-family:var(--sans);color:var(--ink);font-size:14px;letter-spacing:.08em;text-align:right}
+  .who small{display:block;color:var(--mut);font-family:var(--sans);font-size:11px;letter-spacing:.2em}
+
+  /* ---------- layout ---------- */
+  .grid{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(280px,1fr);gap:30px;align-items:start}
+  @media (max-width:900px){.grid{grid-template-columns:1fr}}
+  .boardBox{position:relative}
+  svg{display:block;width:100%;height:auto;max-width:680px;margin:0 auto}
+
+  /* ---------- panels ---------- */
+  .panel{background:var(--panel);
+    border:1px solid var(--line);border-radius:6px;padding:18px 18px 16px;margin-bottom:18px}
+  .panel h2{font-family:var(--sans);font-weight:700;font-size:15px;letter-spacing:.24em;color:var(--ink);
+    margin-bottom:12px;display:flex;align-items:center;gap:10px}
+  .panel h2::after{content:"";flex:1;height:1px;background:var(--line)}
+
+  .themeRow{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+  .dirTag{font-family:var(--sans);font-size:12px;color:var(--mut);width:2.4em;letter-spacing:.2em;flex-shrink:0}
+  .themeRow input{flex:1;min-width:0}
+  input[type=text],input[type=number]{
+    background:#fff;border:1px solid var(--line);border-radius:4px;
+    color:var(--ink);font-family:var(--sans);font-size:14px;padding:7px 10px;width:100%}
+  input:focus{outline:2px solid var(--ink);outline-offset:1px}
+  .hint{font-size:12px;color:var(--ink-2);line-height:1.7;margin-top:8px}
+  .hint em{color:var(--ink);font-style:normal}
+
+  button{font-family:var(--sans);font-size:13px;letter-spacing:.14em;cursor:pointer;border-radius:4px;
+    padding:8px 16px;border:1px solid var(--ink-2);background:#fff;color:var(--ink);transition:background .15s,color .15s}
+  button:hover{background:#f0f1f3}
+  button:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+  button.primary{background:var(--ink);color:#fff;border-color:var(--ink);font-weight:700}
+  button.primary:hover{background:#3a332c}
+  button.ghost{border-color:var(--line);color:var(--mut)}
+  button.danger{border-color:var(--shu);color:var(--shu)}
+  .btnRow{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
+
+  /* ---------- ranking ---------- */
+  .rankRow{display:flex;align-items:center;gap:10px;padding:7px 2px;border-bottom:1px solid var(--line)}
+  .rankRow:last-child{border-bottom:none}
+  .rankNo{font-variant-numeric:tabular-nums;font-weight:700;color:var(--mut);width:1.4em;text-align:center;font-size:13px}
+  .rankName{flex:1;min-width:0;font-size:14px;color:var(--ink);cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .rankName:hover{text-decoration:underline dotted;text-underline-offset:3px}
+  .rankTag{font-size:11px;color:var(--shu);border:1px solid rgba(207,75,47,.4);border-radius:999px;padding:1px 8px;white-space:nowrap}
+  .rankCount{font-variant-numeric:tabular-nums;color:var(--ink-2);font-size:13px}
+  .rankCount b{color:var(--ink);font-size:15px;font-weight:700}
+  .rankCount .s{font-size:11px;margin-left:1px}
+  .shapeTag{display:inline-block;font-size:11px;color:var(--ink);background:#eceef2;border-radius:999px;
+    padding:1px 9px;letter-spacing:.08em;margin-left:2px}
+  .addTheme{cursor:pointer}
+  .addTheme:hover rect{fill:#e9eaee}
+
+  /* ---------- readings ---------- */
+  .reading{border-left:2px solid var(--ink);padding:8px 12px;margin-bottom:10px;
+    background:#f7f7f8;font-size:13.5px;line-height:1.8;border-radius:0 4px 4px 0}
+  .reading.shu{border-left-color:var(--shu);background:rgba(207,75,47,.06)}
+  .reading b{color:var(--ink);font-weight:700}
+  .reading.shu b{color:var(--shu)}
+  .readingEmpty{color:var(--ink-2);font-size:13px}
+
+  /* ---------- how to ---------- */
+  details{border:1px solid var(--line);border-radius:6px;padding:12px 16px;margin-bottom:18px}
+  summary{cursor:pointer;font-family:var(--sans);font-weight:700;letter-spacing:.2em;color:var(--ink);font-size:14px}
+  details ol{padding-left:1.4em;margin-top:10px;color:var(--ink-2);font-size:13px}
+  details li{margin-bottom:6px}
+  details li strong{color:var(--ink);font-weight:700}
+
+  .saveNote{font-size:11px;color:var(--mut);letter-spacing:.08em;margin-top:6px;min-height:1.4em}
+
+  /* ---------- setup ---------- */
+  .setup{max-width:520px;margin:40px auto;background:var(--panel);border:1px solid var(--line);
+    border-radius:8px;padding:34px 34px 30px}
+  .setup h2{font-family:var(--sans);font-weight:700;font-size:22px;letter-spacing:.2em;color:var(--ink);margin-bottom:6px}
+  .setup .lede{color:var(--ink-2);font-size:13px;margin-bottom:22px;line-height:1.9}
+  .field{margin-bottom:16px}
+  .field label{display:block;font-size:12px;letter-spacing:.2em;color:var(--ink-2);margin-bottom:5px}
+
+  /* ---------- prep ---------- */
+  .prep{max-width:640px;margin:0 auto 40px;background:var(--panel);border:1px solid var(--line);
+    border-radius:8px;padding:28px 30px 26px}
+  .prepHead{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;margin-bottom:12px}
+  .prepStepNo{font-size:11px;letter-spacing:.3em;color:var(--mut);margin-bottom:4px}
+  .prep h2{font-size:20px;font-weight:700;letter-spacing:.06em;line-height:1.55;color:var(--ink)}
+  .prepDots{display:flex;gap:6px;margin-bottom:22px}
+  .prepDots span{width:7px;height:7px;border-radius:50%;background:var(--line);cursor:pointer}
+  .prepDots span.done{background:#c3c8d2}
+  .prepDots span.on{background:var(--ink)}
+  .qhint{font-size:12.5px;color:var(--ink-2);margin-bottom:14px;line-height:1.85}
+  .qhint em{color:var(--ink);font-style:normal;font-weight:700}
+  textarea{width:100%;min-height:104px;background:#fff;border:1px solid var(--line);border-radius:4px;
+    color:var(--ink);font-family:var(--sans);font-size:14px;padding:10px;line-height:1.85;resize:vertical}
+  textarea:focus{outline:2px solid var(--ink);outline-offset:1px}
+  .subQ{margin-top:16px;padding-top:14px;border-top:1px dashed var(--line)}
+  .subQ .qhint{margin-bottom:8px}
+  .addRow{display:flex;gap:8px;margin-top:16px;flex-wrap:wrap;align-items:center}
+  .addRow input{flex:1;min-width:150px}
+  select{background:#fff;border:1px solid var(--line);border-radius:4px;color:var(--ink);
+    font-family:var(--sans);font-size:13px;padding:7px 8px}
+  select:focus{outline:2px solid var(--ink);outline-offset:1px}
+  .chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+  .chip{border:1px solid var(--line);background:#f7f7f8;border-radius:999px;
+    padding:4px 10px 4px 12px;font-size:12.5px;display:flex;align-items:center;gap:9px}
+  .chip .k{color:var(--mut);font-size:11px}
+  .chip .x{cursor:pointer;color:var(--mut);line-height:1;font-size:15px;background:none;border:none;padding:0}
+  .chip .x:hover{color:var(--shu);background:none}
+  .candRow{display:flex;gap:8px;align-items:center;margin-bottom:9px}
+  .candRow input{flex:1;min-width:120px}
+  .prepBlock{padding:16px 0;border-bottom:1px solid var(--line)}
+  .prepBlock:last-child{border-bottom:none}
+  .prepQ{font-size:15px;font-weight:700;letter-spacing:.04em;color:var(--ink);line-height:1.6;margin-bottom:10px}
+  .candBlock{background:#fafafb;border:1px solid var(--line);border-radius:6px;padding:16px;margin:4px 0}
+  .warn{font-size:12.5px;color:var(--shu);margin-top:12px;line-height:1.8}
+  .timerBox{display:flex;align-items:center;gap:16px;margin:18px 0 4px}
+  .timerNum{font-size:32px;font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:.04em;color:var(--ink)}
+  .scanList{font-size:13.5px;color:var(--ink-2);line-height:2.05;padding-left:1.1em;margin-top:6px}
+  .scanList strong{color:var(--ink);font-weight:700}
+  .prepNav{justify-content:space-between;margin-top:22px}
+  .prepNav .right{display:flex;gap:10px}
+  .emptyNote{font-size:13px;color:var(--ink-2);line-height:1.9}
+
+  /* ---------- modal ---------- */
+  .veil{position:fixed;inset:0;background:rgba(23,19,15,.45);display:flex;align-items:center;justify-content:center;z-index:50;padding:20px}
+  .modal{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:26px;width:100%;max-width:380px;box-shadow:0 12px 40px rgba(23,19,15,.18)}
+  .modal h3{font-family:var(--sans);font-weight:700;letter-spacing:.18em;font-size:16px;color:var(--ink);margin-bottom:14px}
+  .mErr{font-size:12px;color:var(--shu);line-height:1.7;margin-top:6px;min-height:1em}
+  .hidden{display:none !important}
+
+  .boardCell{cursor:pointer}
+  .boardCell:hover rect,.boardCell:focus rect{fill:rgba(23,19,15,.06)}
+  .stone{cursor:pointer}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div>
+      <div class="eyebrow">fuseki mandala</div>
+      <h1>布石マンダラ</h1>
+      <div class="sub">いつかの布石が、道になる。</div>
+    </div>
+  </header>
+
+  <!-- ========== setup ========== -->
+  <div id="setupView" class="setup hidden">
+    <h2>盤をひらく</h2>
+    <p class="lede">年齢は輪に、外周が子ども時代、真ん中がいま。<br>まず、あなたの名前と年齢を。テーマは盤をひらいてから置けます。</p>
+    <div class="field"><label for="suName">名前</label><input type="text" id="suName" placeholder="例：兼松佳宏"></div>
+    <div class="field"><label for="suAge">いまの年齢</label><input type="number" id="suAge" min="15" max="99" placeholder="例：39"></div>
+    <p class="hint">盤をひらいたら、「＋テーマ」から東西南北にテーマを置いていきます。テーマ探しに迷ったら、あとで「テーマを見つける」も使えます。</p>
+    <div class="btnRow"><button class="primary" id="suGo">盤をひらく</button></div>
+  </div>
+
+  <!-- ========== prep（テーマをみつける） ========== -->
+  <div id="prepView" class="hidden">
+    <div class="prep">
+      <div class="prepHead">
+        <div>
+          <div class="prepStepNo">テーマをみつける</div>
+          <h2 id="prepTitle">痕跡をたどり、候補をあつめる</h2>
+        </div>
+        <button class="ghost" id="prepSkip">盤に戻る</button>
+      </div>
+      <div id="prepBody"></div>
+      <div class="btnRow prepNav">
+        <div></div>
+        <div class="right"><button class="primary" id="prepDone">この候補で盤をひらく</button></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== main ========== -->
+  <div id="mainView" class="hidden">
+    <div class="grid">
+      <div class="boardBox" id="boardBox"></div>
+
+      <div>
+        <details>
+          <summary>遊び方</summary>
+          <ol>
+            <li><strong>テーマを入力する（基本的には名詞で）。</strong>そのテーマから離れた期間が2年以上あるか、が目安。</li>
+            <li><strong>各年代ごとに石を置く。</strong>年齢はだいたいでOK。正確な座標より、間隔のパターン。</li>
+            <li>終わったら、<strong>たくさん布石が置かれているテーマ</strong>、<strong>だんだん戻りつつあるテーマ</strong>、<strong>真ん中の空白</strong>を眺める。</li>
+          </ol>
+        </details>
+
+        <div class="panel">
+          <h2>テーマ</h2>
+          <div id="themeList"></div>
+          <p class="hint">盤の「＋テーマ」を押すと、その方角にテーマを置けます。基本は名詞で。</p>
+        </div>
+
+        <div class="panel">
+          <h2>読み</h2>
+          <div id="readings"></div>
+        </div>
+
+        <div class="panel">
+          <h2>盤</h2>
+          <div class="btnRow">
+            <button class="primary" id="btnExport">画像として書き出す</button>
+            <button id="btnPrep">テーマを見つける</button>
+            <button class="danger" id="btnReset">最初から</button>
+          </div>
+          <p class="saveNote" id="saveNote"></p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== modal ========== -->
+  <div id="veil" class="veil hidden">
+    <div class="modal">
+      <h3 id="mTitle">石を置く</h3>
+      <div class="field"><label id="mThemeLabel">テーマ</label><div id="mTheme" style="font-family:var(--sans);letter-spacing:.1em"></div></div>
+      <div class="field"><label for="mAge">年齢</label><input type="number" id="mAge" min="0" max="99">
+        <p class="mErr" id="mErr"></p></div>
+      <div class="field"><label for="mNote">おぼえがき（なくても）</label><input type="text" id="mNote" placeholder="そのとき、なにがあった？"></div>
+      <div class="btnRow">
+        <button class="primary" id="mSave">置く</button>
+        <button class="danger hidden" id="mDelete">取り除く</button>
+        <button class="ghost" id="mClose">とじる</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+(function(){
+"use strict";
+
+/* ---------------- state ---------------- */
+const KEY = "fuseki-mandala-v1";
+const DIRS = [
+  {id:0, dx:0, dy:-1, name:"北"},
+  {id:1, dx:0, dy: 1, name:"南"},
+  {id:2, dx:-1,dy: 0, name:"西"},
+  {id:3, dx:1, dy: 0, name:"東"}
+];
+let state = { name:"", age:0, themes:["","","",""], stones:[],
+              prepDone:false, prepStep:0, scan:{}, journal:{}, cands:[] };
+// stone: {id,dir,age,note}  /  cand: {id,name,kind:"mono"|"hito",grain:null|true|false,dir:null|0..3}
+let editingStoneId = null, modalDir = null, modalBand = null;
+let storageOk = null;
+let timerId = null, timerLeft = 180, timerRunning = false;
+
+function esc(s){return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
+function uid(){return Math.random().toString(36).slice(2,9);}
+
+/* ---------------- persistence ---------------- */
+async function load(){
+  try{
+    const r = await window.storage.get(KEY);
+    if(r && r.value){ state = JSON.parse(r.value); storageOk = true; }
+    else storageOk = true;
+  }catch(e){ if(storageOk===null) storageOk = (typeof window.storage!=="undefined"); }
+  migrate();
+  route();
+}
+function migrate(){
+  if(!state.scan) state.scan = {};
+  if(!state.journal) state.journal = {};
+  if(!state.cands) state.cands = [];
+  if(typeof state.prepStep !== "number") state.prepStep = 0;
+  if(typeof state.prepDone !== "boolean"){
+    // すでに盤がある人は支度済みとみなす
+    state.prepDone = !!(state.name && state.age);
+  }
+}
+let saveTimer=null;
+function save(){
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(async ()=>{
+    try{
+      await window.storage.set(KEY, JSON.stringify(state));
+      storageOk = true; setSaveNote("この端末に保存されました。");
+    }catch(e){ storageOk=false; setSaveNote("この場かぎりの盤です（保存は書き出しで）。"); }
+  }, 500);
+}
+function setSaveNote(t){ const el=document.getElementById("saveNote"); if(el) el.textContent=t; }
+
+/* ---------------- age bands ---------------- */
+function bands(){
+  const age = state.age || 40;
+  const arr = [{lo:0, hi:9, label:"〜9歳"}];
+  if(age <= 39){
+    // 〜39歳：5歳刻み。35–39までかならず引く（未来の局面として空けておく）
+    for(let lo=10; lo<=35; lo+=5) arr.push({lo, hi:lo+4, label:lo+"–"+(lo+4)+"歳"});
+  }else{
+    // 40歳〜：10歳刻み。60代まではかならず引く（未来の局面として空けておく）
+    const last = Math.max(60, Math.floor(age/10)*10);
+    for(let lo=10; lo<=last; lo+=10) arr.push({lo, hi:lo+9, label:lo+"–"+(lo+9)+"歳"});
+  }
+  return arr;
+}
+function maxAge(){ const bs=bands(); return bs[bs.length-1].hi; }
+function bandOf(a){
+  const bs = bands();
+  for(let i=0;i<bs.length;i++) if(a>=bs[i].lo && a<=bs[i].hi) return i;
+  return bs.length-1;
+}
+
+/* ---------------- board geometry ---------------- */
+// 19路（3-6-6-3）。線は k=0..18、天元は k=9、星は k=3・9・15
+const S=760, C=380, CELL=38, EDGE=38, LINES=19, HALFK=9;
+function ringK(i){ const n=bands().length; if(n<=1) return HALFK; const t=Math.max(1, Math.floor((HALFK-2)/(n-1))); return HALFK - i*t; }
+function ringR(i){ return ringK(i)*CELL; }
+
+/* ---------------- board svg ---------------- */
+function boardSVG(forExport){
+  const bs = bands(), n = bs.length;
+  const stoneR = 14;
+  let g = "";
+
+  // 白地
+  g += `<rect x="0" y="0" width="${S}" height="${S}" fill="#ffffff"/>`;
+
+  // 碁盤の目（19路・薄いグレー）
+  for(let k=0;k<LINES;k++){
+    const p = EDGE + k*CELL;
+    g += `<line x1="${p}" y1="${EDGE}" x2="${p}" y2="${S-EDGE}" stroke="#c9ced8" stroke-opacity="0.85" stroke-width="0.7"/>`;
+    g += `<line x1="${EDGE}" y1="${p}" x2="${S-EDGE}" y2="${p}" stroke="#c9ced8" stroke-opacity="0.85" stroke-width="0.7"/>`;
+  }
+  // 星（4・10・16線＝端から3-6-6-3）。天元には名が座るので打たない
+  const hoshi = [3,9,15].map(k=>EDGE + k*CELL);
+  hoshi.forEach(x=>{ hoshi.forEach(y=>{
+    if(x===C&&y===C) return;
+    g += `<circle cx="${x}" cy="${y}" r="2.8" fill="#9aa3b5"/>`;
+  });});
+
+  // 年齢の輪（正方形）— 格子線の上に重ねる
+  for(let i=0;i<n;i++){
+    const h = ringR(i);
+    g += `<rect x="${C-h}" y="${C-h}" width="${2*h}" height="${2*h}" fill="none" stroke="${i===0?"#5b6472":"#9aa3b5"}" stroke-opacity="${i===0?0.9:0.55}" stroke-width="${i===0?1.4:1}"/>`;
+  }
+
+  // 輪のラベル（各輪の左上コーナーの内側、左詰めで揃える）
+  for(let i=0;i<n;i++){
+    const h = ringR(i);
+    const lx = C - h + 8;
+    const ly = C - h + 17;
+    g += `<text x="${lx}" y="${ly}" text-anchor="start" font-family="Zen Kaku Gothic New, sans-serif" font-size="11" fill="#8b93a6">${esc(bs[i].label)}</text>`;
+  }
+
+  // 天元＝名。二行の塊が中心にくるように据える
+  const tight = ringR(n-1) < 92;
+  const fs = tight ? 16 : 19;
+  g += `<text x="${C}" y="${C-3}" text-anchor="middle" font-family="Zen Kaku Gothic New, sans-serif" font-weight="700" font-size="${fs}" letter-spacing="2" fill="#17130f">${esc(state.name)}</text>`;
+  g += `<text x="${C}" y="${C+(tight?19:22)}" text-anchor="middle" font-family="Zen Kaku Gothic New, sans-serif" font-size="${tight?11:12.5}" letter-spacing="4" fill="#5b6472">の布石</text>`;
+
+  // 方位ラベル・打点・石
+  DIRS.forEach(dir=>{
+    const label = state.themes[dir.id];
+    if(label){
+      if(dir.dy!==0){
+        const ty = dir.dy===-1 ? 24 : S-12;
+        g += `<text x="${C}" y="${ty}" text-anchor="middle" font-family="Zen Kaku Gothic New, sans-serif" font-weight="700" font-size="15" letter-spacing="3" fill="#17130f">${esc(label)}</text>`;
+      }else{
+        const chars=[...label]; const startY = C-(chars.length-1)*10;
+        const vx = dir.dx===-1 ? 18 : S-18;
+        chars.forEach((ch,ci)=>{ g += `<text x="${vx}" y="${startY+ci*20}" text-anchor="middle" font-family="Zen Kaku Gothic New, sans-serif" font-weight="700" font-size="14" fill="#17130f">${esc(ch)}</text>`; });
+      }
+    }else if(!forExport){
+      // 空いている方角：クリックでテーマを入力
+      const ph = "＋ テーマ";
+      let px=C, py=C;
+      if(dir.dy===-1){ px=C; py=22; } else if(dir.dy===1){ px=C; py=S-10; }
+      else if(dir.dx===-1){ px=48; py=C; } else { px=S-48; py=C; }
+      g += `<g class="addTheme" tabindex="0" role="button" aria-label="${dir.name}にテーマを加える" data-add="${dir.id}">
+        <rect x="${px-46}" y="${py-15}" width="92" height="30" rx="15" fill="#f4f4f5" stroke="#c9ced8" stroke-width="1"/>
+        <text x="${px}" y="${py}" text-anchor="middle" dominant-baseline="central" font-family="Zen Kaku Gothic New, sans-serif" font-size="12.5" fill="#5b6472">${ph}</text></g>`;
+    }
+    if(!label) return;
+
+    if(!forExport){
+      for(let i=0;i<n;i++){
+        const r = ringR(i);
+        const cx = C + dir.dx*r, cy = C + dir.dy*r;
+        const long = CELL*7; // 7石分（±3マス＋余白）
+        const w = dir.dy!==0 ? long : CELL;
+        const h = dir.dy!==0 ? CELL : long;
+        g += `<g class="boardCell" tabindex="0" role="button" aria-label="${esc(label)}・${esc(bs[i].label)}に石を置く" data-dir="${dir.id}" data-band="${i}">
+          <rect x="${cx-w/2}" y="${cy-h/2}" width="${w}" height="${h}" fill="transparent"/></g>`;
+      }
+    }
+
+    const byBand = {};
+    state.stones.filter(s=>s.dir===dir.id).sort((a,b)=>a.age-b.age).forEach(s=>{
+      const b = bandOf(s.age); (byBand[b]=byBand[b]||[]).push(s);
+    });
+    Object.keys(byBand).forEach(bi=>{
+      const arr = byBand[bi].slice(0,7); const r = ringR(+bi); // 1年代あたり最大7石
+      const base = Math.floor((arr.length-1)/2);
+      arr.forEach((s,idx)=>{
+        const m = idx - base; // 整数マス＝かならず交点に載る（偶数もずれない）
+        const cx = C + dir.dx*r + (dir.dy!==0? m*CELL:0);
+        const cy = C + dir.dy*r + (dir.dx!==0? m*CELL:0);
+        g += `<g class="stone" tabindex="0" role="button" aria-label="${esc(state.themes[dir.id])}・${s.age}歳の石" data-stone="${s.id}">
+          <circle cx="${cx}" cy="${cy}" r="${stoneR}" fill="#17130f" stroke="#ffffff" stroke-width="1.5"/>
+          <text x="${cx}" y="${cy}" text-anchor="middle" dominant-baseline="central" font-family="Zen Kaku Gothic New, sans-serif" font-weight="700" font-size="12.5" fill="#ffffff">${s.age}</text>
+          ${s.note?`<circle cx="${cx}" cy="${cy+9.5}" r="1.7" fill="#cf4b2f"/>`:""}
+          <title>${esc(state.themes[dir.id])}・${s.age}歳${s.note? "："+esc(s.note):""}</title>
+        </g>`;
+      });
+    });
+  });
+
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${S} ${S}" role="img" aria-label="${esc(state.name)}の布石マンダラ">${g}</svg>`;
+}
+
+/* ---------------- prep（テーマをみつける） ---------------- */
+const QUESTIONS = [
+  { id:"q2", title:"Q2. 元が取れるかどうかを気にせず、お金や時間を注いでしまったもの／ことは？" },
+  { id:"q3", title:"Q3. 一度辞めたり、離れたのに、また好きになったもの／始めてしまったことは？" },
+  { id:"q4", title:"Q4. 引っ越しや大掃除で、なぜか手放せなかったものは？" },
+  { id:"q5", title:"Q5. 初めての本屋や図書館に行ったとき、まずは見に行く棚は？" },
+  { id:"q6", title:"Q6. 人から「また〇〇の話してる」と言われたことは？" }
+];
+const SCAN_ITEMS = [
+  { label:"本棚", note:"時期をまたいで、再び手に取った本は？" },
+  { label:"買いもの履歴", note:"どの時期に、よく何を買っていましたか？" },
+  { label:"写真フォルダ", note:"何に惹かれ、何を撮りつづけていますか？" },
+  { label:"昔のノート・SNS", note:"当時の自分は、何を書き残していますか？" }
+];
+const DIR_LABEL = { "": "置かない", "0":"上に置く", "1":"下に置く", "2":"左に置く", "3":"右に置く" };
+
+function stopTimer(){ if(timerId){ clearInterval(timerId); timerId=null; } timerRunning=false; }
+
+// 候補の入力フォーム＋一覧（全ページ共通で下に残す想定を1ページに集約）
+function candBoxHTML(){
+  const list = state.cands.length
+    ? `<div class="chips">` + state.cands.map(c=>
+        `<span class="chip"><b>${esc(c.name)}</b><button class="x" data-del="${c.id}" aria-label="${esc(c.name)}を外す">×</button></span>`
+      ).join("") + `</div>`
+    : `<p class="emptyNote" style="margin-top:12px">まだ候補はありません。上の問いから、思いついた名詞を足していきましょう。</p>`;
+  return `
+    <div class="addRow">
+      <input type="text" id="candInput" placeholder="候補を名詞で（例：キットカット、空海、〇〇さん）">
+      <button id="candAdd">候補を加える</button>
+    </div>
+    ${list}`;
+}
+
+function renderPrep(){
+  const bs = bands();
+  const html = `
+    <div class="prepBlock">
+      <h3 class="prepQ">Q1. あなたの身の回りにある痕跡は？</h3>
+      <p class="qhint">無理にテーマを思い出す必要はありません。まずは身の回りのものを眺めたり、ログを振り返ったり、確かな痕跡をたどってみましょう。</p>
+      <ul class="scanList">
+        ${SCAN_ITEMS.map(it=>`<li><strong>${it.label}</strong>——${it.note}</li>`).join("")}
+      </ul>
+      <div class="timerBox">
+        <span class="timerNum" id="tNum">3:00</span>
+        <button id="tToggle">3分をはかる</button>
+        <button class="ghost" id="tReset">戻す</button>
+      </div>
+      <textarea id="j_scan" placeholder="眺めていて、目にとまったもの…">${esc(state.journal.scan||"")}</textarea>
+    </div>
+
+    ${QUESTIONS.map(q=>`
+      <div class="prepBlock">
+        <h3 class="prepQ">${q.title}</h3>
+        <textarea id="j_${q.id}" placeholder="思いつくままに。文にしなくてかまいません。">${esc(state.journal[q.id]||"")}</textarea>
+      </div>`).join("")}
+
+    <div class="prepBlock candBlock">
+      <h3 class="prepQ">テーマの候補</h3>
+      <p class="qhint">テーマの候補になりそうなものを、書き留めておきましょう。（このリストは、この先もずっと残ります）</p>
+      <div id="candArea">${candBoxHTML()}</div>
+    </div>
+
+    <div class="prepBlock">
+      <h3 class="prepQ">候補の布石を置く</h3>
+      <p class="qhint">そのテーマから離れた期間が2年以上あるか、が目安になります。また、「音楽」のようにテーマが大きすぎると、思い出すエピソードの数が多く、逆に「曲名」のように小さすぎると少なくなりすぎてしまうので、ちょうどいいテーマを選択してください。</p>
+      <div id="assignArea">${assignHTML()}</div>
+    </div>`;
+
+  document.getElementById("prepBody").innerHTML = html;
+
+  // 手記の保存
+  document.querySelectorAll("#prepBody textarea").forEach(ta=>{
+    ta.addEventListener("input", ()=>{
+      state.journal[ta.id.replace(/^j_/,"")] = ta.value; save();
+    });
+  });
+
+  bindCandBox();
+  bindAssign();
+  bindTimer();
+}
+
+function bindTimer(){
+  const num = document.getElementById("tNum");
+  const paint = ()=>{ const m=Math.floor(timerLeft/60), s=String(timerLeft%60).padStart(2,"0"); if(num) num.textContent=m+":"+s; };
+  paint();
+  const toggle = document.getElementById("tToggle");
+  toggle.addEventListener("click", ()=>{
+    if(timerRunning){ stopTimer(); toggle.textContent="3分をはかる"; }
+    else{
+      timerRunning=true; toggle.textContent="とめる";
+      timerId=setInterval(()=>{ timerLeft=Math.max(0,timerLeft-1); paint();
+        if(timerLeft===0){ stopTimer(); toggle.textContent="3分をはかる"; } },1000);
+    }
+  });
+  document.getElementById("tReset").addEventListener("click", ()=>{ stopTimer(); timerLeft=180; paint(); toggle.textContent="3分をはかる"; });
+}
+
+function bindCandBox(){
+  const inp = document.getElementById("candInput");
+  const add = ()=>{
+    const v = inp.value.trim(); if(!v) return;
+    state.cands.push({ id:uid(), name:v, dir:null }); inp.value=""; save();
+    refreshCands();
+    const again = document.getElementById("candInput"); if(again) again.focus();
+  };
+  document.getElementById("candAdd").addEventListener("click", add);
+  inp.addEventListener("keydown", e=>{ if(e.key==="Enter"){ e.preventDefault(); add(); } });
+  document.querySelectorAll("#candArea [data-del]").forEach(b=>{
+    b.addEventListener("click", ()=>{
+      const c = state.cands.find(x=>x.id===b.dataset.del);
+      if(c && c.dir!==null && c.dir!==undefined) state.themes[c.dir] = "";
+      state.cands = state.cands.filter(x=>x.id!==b.dataset.del);
+      save(); refreshCands();
+    });
+  });
+}
+
+function refreshCands(){
+  const a = document.getElementById("candArea"); if(a) a.innerHTML = candBoxHTML();
+  const as = document.getElementById("assignArea"); if(as) as.innerHTML = assignHTML();
+  bindCandBox(); bindAssign();
+}
+
+function assignHTML(){
+  if(!state.cands.length){
+    return `<p class="emptyNote">候補がありません。上の「テーマの候補」から足すと、ここで盤の上下左右に置けます。</p>`;
+  }
+  return state.cands.map(c=>`
+    <div class="candRow">
+      <input type="text" value="${esc(c.name)}" data-rename="${c.id}">
+      <select data-dir="${c.id}">
+        ${["","0","1","2","3"].map(v=>`<option value="${v}"${String(c.dir??"")===v?" selected":""}>${DIR_LABEL[v]}</option>`).join("")}
+      </select>
+    </div>`).join("");
+}
+
+function bindAssign(){
+  document.querySelectorAll("#assignArea [data-rename]").forEach(inp=>{
+    inp.addEventListener("change", ()=>{
+      const c = state.cands.find(x=>x.id===inp.dataset.rename); if(!c) return;
+      c.name = inp.value.trim();
+      if(c.dir!==null && c.dir!==undefined) state.themes[c.dir] = c.name;
+      save(); refreshCands();
+    });
+  });
+  document.querySelectorAll("#assignArea [data-dir]").forEach(sel=>{
+    sel.addEventListener("change", ()=>{
+      const c = state.cands.find(x=>x.id===sel.dataset.dir); if(!c) return;
+      const v = sel.value==="" ? null : +sel.value;
+      if(c.dir!==null && c.dir!==undefined) state.themes[c.dir] = "";
+      if(v!==null){
+        state.cands.forEach(o=>{ if(o!==c && o.dir===v) o.dir=null; });
+        c.dir = v; state.themes[v] = c.name;
+      }else c.dir = null;
+      save(); refreshCands();
+    });
+  });
+}
+
+
+/* ---------------- readings ---------------- */
+function themeStones(d){ return state.stones.filter(s=>s.dir===d).map(s=>s.age).sort((a,b)=>a-b); }
+
+function themeCount(d){ return state.stones.filter(s=>s.dir===d).length; }
+
+// テーマの布石の「型」を判定する。年代ごとの石数の分布から。
+const SHAPE_MSG = {
+  triangle:  "豊かな原体験が、あなたを呼んでいるようです。もう一度、違う形で関わり直してみませんか？",
+  inverse:   "大人になってから、新しい世界が広がっているようです。さらに石を置くことにワクワクしますか？",
+  square:    "なぜか周期的に、このテーマに戻されているようです。それは、すでにあなたの道なのかもしれません。",
+  zigzag:    "なぜか、一気にこのテーマに戻される時期があるようです。それは、すでにあなたの道なのかもしれません。"
+};
+const SHAPE_NAME = { triangle:"三角型", inverse:"逆三角型", square:"方形型", zigzag:"ジグザグ型" };
+
+function shapeOf(dir){
+  const bs = bands();
+  const nowBand = bandOf(state.age);
+  const counts = bs.map((b,i)=> state.stones.filter(s=>s.dir===dir && bandOf(s.age)===i).length)
+                   .slice(0, nowBand+1);
+  const total = counts.reduce((a,b)=>a+b,0);
+  if(total < 3) return null;                          // 3石以上そろってから読む
+
+  // 石のある範囲（最初の石の年代〜現在の年代）で見る
+  let first = counts.findIndex(c=>c>0);
+  if(first < 0) return null;
+  const span = counts.slice(first);                   // 最初の石以降
+  const occ = span.filter(c=>c>0).length;
+  const L = span.length;
+
+  // ジグザグ：山が空の年代で分断されている
+  let gaps = 0, seen = false, tail = 0;
+  for(const c of span){
+    if(c>0){ if(seen && tail>0) gaps++; seen = true; tail = 0; }
+    else if(seen){ tail++; }
+  }
+  if(gaps>=1 && occ>=2) return "zigzag";
+
+  // 前半／後半の石数を比べる
+  const half = Math.floor(L/2);
+  const early = span.slice(0, half).reduce((a,b)=>a+b,0);
+  const lateArr = span.slice(L - half);
+  const late = lateArr.reduce((a,b)=>a+b,0);
+  const mids = total - early - late;
+
+  // 方形：どの年代にもだいたい均等に（前半・後半が拮抗し、空きが少ない）
+  if(L>=3 && occ >= Math.ceil(L*0.6) && Math.abs(early-late) <= 1) return "square";
+
+  if(early > late) return "triangle";
+  if(late > early) return "inverse";
+  return "square";
+}
+
+// ランキング：石数の多い順。同数なら最後の石が新しい順
+function ranking(){
+  return DIRS
+    .filter(d=>state.themes[d.id])
+    .map(d=>{
+      const ages = themeStones(d.id);
+      return { dir:d.id, name:state.themes[d.id], count:ages.length,
+               last: ages.length? ages[ages.length-1] : -1 };
+    })
+    .sort((a,b)=> b.count-a.count || b.last-a.last);
+}
+
+function readings(){
+  const out = [];
+  DIRS.forEach(dir=>{
+    const label = state.themes[dir.id]; if(!label) return;
+    const shape = shapeOf(dir.id);
+    if(shape){
+      out.push({cls:"", html:`<b>${esc(label)}</b>——<span class="shapeTag">${SHAPE_NAME[shape]}</span><br>${SHAPE_MSG[shape]}`});
+    }
+    const ages = themeStones(dir.id);
+    if(ages.length>=2){
+      const last = ages[ages.length-1], gap = maxAge() - last;
+      if(gap>=3 && !shape){   // 型が立つ前でも、長い空白は気づける
+        out.push({cls:"", html:`<b>${esc(label)}</b>の最後の石は${last}歳。しばらく空白がつづいています。`});
+      }
+    }
+  });
+  if(state.stones.length===0){
+    out.push({cls:"", html:`まだ石がありません。盤の「＋テーマ」からはじめて、いちばん古い記憶から一石。`});
+  }
+  return out;
+}
+
+/* ---------------- render ---------------- */
+function route(){
+  const opened = !!(state.name && state.age);
+  const inPrep = opened && !state.prepDone;
+  const inMain = opened && state.prepDone;
+  document.getElementById("setupView").classList.toggle("hidden", opened);
+  document.getElementById("prepView").classList.toggle("hidden", !inPrep);
+  document.getElementById("mainView").classList.toggle("hidden", !inMain);
+  if(!inPrep) stopTimer();
+  if(inPrep) renderPrep();
+  if(inMain) render();
+}
+
+function render(){
+  document.getElementById("boardBox").innerHTML = boardSVG(false);
+
+  // テーマ一覧＝石数のランキング
+  const tl = document.getElementById("themeList");
+  const rank = ranking();
+  if(!rank.length){
+    tl.innerHTML = `<p class="readingEmpty">まだテーマがありません。盤の「＋テーマ」から。</p>`;
+  }else{
+    tl.innerHTML = rank.map((r,i)=>`
+      <div class="rankRow">
+        <span class="rankNo">${i+1}</span>
+        <span class="rankName" data-rename-dir="${r.dir}" title="クリックで名前を変える">${esc(r.name)}</span>
+        <span class="rankCount"><b>${r.count}</b><span class="s">石</span></span>
+      </div>`).join("");
+    tl.querySelectorAll("[data-rename-dir]").forEach(el=>{
+      el.addEventListener("click", ()=> renameTheme(+el.dataset.renameDir));
+    });
+  }
+
+  // 読み
+  const rs = readings();
+  document.getElementById("readings").innerHTML =
+    rs.length ? rs.map(r=>`<div class="reading ${r.cls}">${r.html}</div>`).join("")
+              : `<p class="readingEmpty">石が増えると、盤が読みはじめます。</p>`;
+
+  // 盤のイベント
+  document.querySelectorAll(".boardCell").forEach(c=>{
+    const open = ()=>openPlace(+c.dataset.dir, +c.dataset.band);
+    c.addEventListener("click", open);
+    c.addEventListener("keydown", e=>{ if(e.key==="Enter"||e.key===" "){e.preventDefault();open();} });
+  });
+  document.querySelectorAll(".stone").forEach(st=>{
+    const open = ()=>openEdit(st.dataset.stone);
+    st.addEventListener("click", e=>{e.stopPropagation();open();});
+    st.addEventListener("keydown", e=>{ if(e.key==="Enter"||e.key===" "){e.preventDefault();open();} });
+  });
+  // ＋テーマ
+  document.querySelectorAll(".addTheme").forEach(a=>{
+    const go = ()=>addThemeTo(+a.dataset.add);
+    a.addEventListener("click", go);
+    a.addEventListener("keydown", e=>{ if(e.key==="Enter"||e.key===" "){e.preventDefault();go();} });
+  });
+}
+
+function addThemeTo(dir){
+  const v = prompt(DIRS[dir].name + "の方角に置くテーマ（基本は名詞で）");
+  if(v===null) return;
+  const t = v.trim(); if(!t) return;
+  state.themes[dir] = t; save(); render();
+}
+function renameTheme(dir){
+  const v = prompt("テーマの名前", state.themes[dir]||"");
+  if(v===null) return;
+  const t = v.trim();
+  if(!t){
+    if(confirm("空にすると、このテーマと石はすべて取り除かれます。よろしいですか？")){
+      state.themes[dir]=""; state.stones = state.stones.filter(s=>s.dir!==dir); save(); render();
+    }
+    return;
+  }
+  state.themes[dir] = t; save(); render();
+}
+
+/* ---------------- modal ---------------- */
+const veil = document.getElementById("veil");
+function openPlace(dir, band){
+  editingStoneId = null; modalDir = dir; modalBand = band;
+  const b = bands()[band];
+  document.getElementById("mTitle").textContent = "石を置く";
+  document.getElementById("mTheme").textContent = state.themes[dir] + "　／　" + b.label;
+  const ageInp = document.getElementById("mAge");
+  ageInp.value = Math.round((b.lo+b.hi)/2);   // 触れた輪のまんなかから
+  ageInp.min = 0; ageInp.max = maxAge();
+  document.getElementById("mErr").textContent = "";
+  document.getElementById("mNote").value = "";
+  document.getElementById("mDelete").classList.add("hidden");
+  veil.classList.remove("hidden"); ageInp.focus();
+}
+function openEdit(id){
+  const s = state.stones.find(x=>x.id===id); if(!s) return;
+  editingStoneId = id; modalDir = s.dir;
+  document.getElementById("mTitle").textContent = "石をあらためる";
+  document.getElementById("mTheme").textContent = state.themes[s.dir];
+  const ageInp = document.getElementById("mAge");
+  ageInp.value = s.age; ageInp.min=0; ageInp.max=maxAge();
+  document.getElementById("mErr").textContent = "";
+  document.getElementById("mNote").value = s.note||"";
+  document.getElementById("mDelete").classList.remove("hidden");
+  veil.classList.remove("hidden"); ageInp.focus();
+}
+function closeModal(){ veil.classList.add("hidden"); }
+
+document.getElementById("mSave").addEventListener("click", ()=>{
+  const a = parseInt(document.getElementById("mAge").value,10);
+  const err = document.getElementById("mErr");
+  if(isNaN(a)||a<0||a>maxAge()){
+    err.textContent = "この盤に引いてあるのは0〜" + maxAge() + "歳の輪です。";
+    document.getElementById("mAge").focus(); return;
+  }
+  // 1年代あたり最大7石
+  if(!editingStoneId){
+    const band = bandOf(a);
+    const inBand = state.stones.filter(s=>s.dir===modalDir && bandOf(s.age)===band).length;
+    if(inBand>=7){
+      err.textContent = "この年代には、ひとつのテーマにつき7石までです。";
+      return;
+    }
+  }
+  err.textContent = "";
+  const note = document.getElementById("mNote").value.trim();
+  if(editingStoneId){
+    const s = state.stones.find(x=>x.id===editingStoneId);
+    if(s){ s.age=a; s.note=note; }
+  }else{
+    state.stones.push({id:uid(), dir:modalDir, age:a, note});
+  }
+  save(); closeModal(); render();
+});
+document.getElementById("mDelete").addEventListener("click", ()=>{
+  state.stones = state.stones.filter(x=>x.id!==editingStoneId);
+  save(); closeModal(); render();
+});
+document.getElementById("mClose").addEventListener("click", closeModal);
+veil.addEventListener("click", e=>{ if(e.target===veil) closeModal(); });
+document.addEventListener("keydown", e=>{ if(e.key==="Escape") closeModal(); });
+
+/* ---------------- setup ---------------- */
+document.getElementById("suGo").addEventListener("click", ()=>{
+  const name = document.getElementById("suName").value.trim();
+  const age = parseInt(document.getElementById("suAge").value,10);
+  if(!name){ document.getElementById("suName").focus(); return; }
+  if(isNaN(age)||age<15||age>99){ document.getElementById("suAge").focus(); return; }
+  state.name=name; state.age=age;
+  state.prepDone = true; state.prepStep = 0;   // 盤へ直行（テーマ探しは任意）
+  save(); route();
+});
+
+/* ---------------- prep nav ---------------- */
+document.getElementById("prepDone").addEventListener("click", ()=>{
+  stopTimer(); state.prepDone = true; save(); route();
+  window.scrollTo({top:0, behavior:"smooth"});
+});
+document.getElementById("prepSkip").addEventListener("click", ()=>{
+  stopTimer(); state.prepDone = true; save(); route();
+  window.scrollTo({top:0, behavior:"smooth"});
+});
+document.getElementById("btnPrep").addEventListener("click", ()=>{
+  state.prepDone = false; save(); route();
+  window.scrollTo({top:0, behavior:"smooth"});
+});
+
+/* ---------------- actions ---------------- */
+document.getElementById("btnExport").addEventListener("click", ()=>{
+  const svgStr = boardSVG(true);
+  const img = new Image();
+  const blob = new Blob([svgStr], {type:"image/svg+xml;charset=utf-8"});
+  const url = URL.createObjectURL(blob);
+  img.onload = ()=>{
+    const cv = document.createElement("canvas");
+    cv.width=1520; cv.height=1520;
+    const ctx = cv.getContext("2d");
+    ctx.drawImage(img,0,0,1520,1520);
+    URL.revokeObjectURL(url);
+    const a = document.createElement("a");
+    a.download = (state.name||"fuseki") + "_布石マンダラ.png";
+    a.href = cv.toDataURL("image/png");
+    a.click();
+  };
+  img.onerror = ()=>{ URL.revokeObjectURL(url); setSaveNote("書き出しに失敗しました。もう一度どうぞ。"); };
+  img.src = url;
+});
+
+document.getElementById("btnReset").addEventListener("click", async ()=>{
+  if(!confirm("盤上の石をすべて取り除き、まっさらに戻します。よろしいですか？")) return;
+  stopTimer(); timerLeft = 180;
+  state = { name:"", age:0, themes:["","","",""], stones:[],
+            prepDone:false, prepStep:0, scan:{}, journal:{}, cands:[] };
+  try{ await window.storage.delete(KEY); }catch(e){}
+  route();
+});
+
+load();
+})();
+</script>
+</body>
+</html>
