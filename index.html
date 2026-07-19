@@ -7,7 +7,20 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap" rel="stylesheet">
 <style>
-  :root{
+
+  :root{ color-scheme:light; }
+  html,body{margin:0;padding:0;background:#f4f4f5;}
+  #pcRoot,#mobRoot{display:none;}
+  body.view-pc #pcRoot{display:block;}
+  body.view-mob #mobRoot{display:block;}
+  .viewToggle{position:fixed;z-index:80;font-family:"Zen Kaku Gothic New",sans-serif;
+    font-size:12px;letter-spacing:.06em;background:#fff;border:1px solid #dfe3ea;border-radius:999px;
+    padding:7px 14px;color:#5b6472;cursor:pointer;box-shadow:0 2px 10px rgba(23,19,15,.08);}
+  .viewToggle:active{background:#eceef2;}
+  #toPc{right:16px;top:14px;}
+  #toMob{right:16px;top:14px;}
+
+:root{
     --paper:#ffffff;      /* 盤 */
     --bg:#f4f4f5;         /* 地 */
     --panel:#ffffff;
@@ -19,155 +32,65 @@
     --grid:#c9ced8;
     --sans:"Zen Kaku Gothic New","Hiragino Kaku Gothic ProN",sans-serif;
   }
-  *{box-sizing:border-box;margin:0;padding:0}
-  html{-webkit-text-size-adjust:100%}
-  body{
+#pcRoot *{box-sizing:border-box;margin:0;padding:0}#pcRoot{-webkit-text-size-adjust:100%}#pcRoot{
     background:var(--bg);
     color:var(--ink);
     font-family:var(--sans);
     font-size:15px;line-height:1.75;
     min-height:100vh;
-  }
-  .wrap{max-width:1120px;margin:0 auto;padding:28px 20px 72px}
-
-  /* ---------- header ---------- */
+  }#pcRoot .wrap{max-width:1120px;margin:0 auto;padding:28px 20px 72px}#pcRoot /* ---------- header ---------- */
   header{text-align:center;
-    border-bottom:1px solid var(--line);padding-bottom:18px;margin-bottom:26px}
-  .eyebrow{font-family:var(--sans);font-size:11px;letter-spacing:.34em;color:var(--mut);text-transform:uppercase}
-  h1{font-family:var(--sans);font-weight:700;font-size:34px;letter-spacing:.14em;color:var(--ink);line-height:1.3}
-  .sub{font-family:var(--sans);color:var(--mut);font-size:13px;letter-spacing:.12em;margin-top:2px}
-  .who{font-family:var(--sans);color:var(--ink);font-size:14px;letter-spacing:.08em;text-align:right}
-  .who small{display:block;color:var(--mut);font-family:var(--sans);font-size:11px;letter-spacing:.2em}
-
-  /* ---------- layout ---------- */
+    border-bottom:1px solid var(--line);padding-bottom:18px;margin-bottom:26px}#pcRoot .eyebrow{font-family:var(--sans);font-size:11px;letter-spacing:.34em;color:var(--mut);text-transform:uppercase}#pcRoot h1{font-family:var(--sans);font-weight:700;font-size:34px;letter-spacing:.14em;color:var(--ink);line-height:1.3}#pcRoot .sub{font-family:var(--sans);color:var(--mut);font-size:13px;letter-spacing:.12em;margin-top:2px}#pcRoot .who{font-family:var(--sans);color:var(--ink);font-size:14px;letter-spacing:.08em;text-align:right}#pcRoot .who small{display:block;color:var(--mut);font-family:var(--sans);font-size:11px;letter-spacing:.2em}#pcRoot /* ---------- layout ---------- */
   .grid{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(280px,1fr);gap:30px;align-items:start}
-  @media (max-width:900px){.grid{grid-template-columns:1fr}}
-  .boardBox{position:relative}
-  svg{display:block;width:100%;height:auto;max-width:680px;margin:0 auto}
-
-  /* ---------- panels ---------- */
+  @media (max-width:900px){#pcRoot .grid{grid-template-columns:1fr}}#pcRoot .boardBox{position:relative}#pcRoot svg{display:block;width:100%;height:auto;max-width:680px;margin:0 auto}#pcRoot /* ---------- panels ---------- */
   .panel{background:var(--panel);
-    border:1px solid var(--line);border-radius:6px;padding:18px 18px 16px;margin-bottom:18px}
-  .panel h2{font-family:var(--sans);font-weight:700;font-size:15px;letter-spacing:.24em;color:var(--ink);
-    margin-bottom:12px;display:flex;align-items:center;gap:10px}
-  .panel h2::after{content:"";flex:1;height:1px;background:var(--line)}
-
-  .themeRow{display:flex;align-items:center;gap:10px;margin-bottom:8px}
-  .dirTag{font-family:var(--sans);font-size:12px;color:var(--mut);width:2.4em;letter-spacing:.2em;flex-shrink:0}
-  .themeRow input{flex:1;min-width:0}
-  input[type=text],input[type=number]{
+    border:1px solid var(--line);border-radius:6px;padding:18px 18px 16px;margin-bottom:18px}#pcRoot .panel h2{font-family:var(--sans);font-weight:700;font-size:15px;letter-spacing:.24em;color:var(--ink);
+    margin-bottom:12px;display:flex;align-items:center;gap:10px}#pcRoot .panel h2::after{content:"";flex:1;height:1px;background:var(--line)}#pcRoot .themeRow{display:flex;align-items:center;gap:10px;margin-bottom:8px}#pcRoot .dirTag{font-family:var(--sans);font-size:12px;color:var(--mut);width:2.4em;letter-spacing:.2em;flex-shrink:0}#pcRoot .themeRow input{flex:1;min-width:0}#pcRoot input[type=text], #pcRoot input[type=number]{
     background:#fff;border:1px solid var(--line);border-radius:4px;
-    color:var(--ink);font-family:var(--sans);font-size:14px;padding:7px 10px;width:100%}
-  input:focus{outline:2px solid var(--ink);outline-offset:1px}
-  .hint{font-size:12px;color:var(--ink-2);line-height:1.7;margin-top:8px}
-  .hint em{color:var(--ink);font-style:normal}
-
-  button{font-family:var(--sans);font-size:13px;letter-spacing:.14em;cursor:pointer;border-radius:4px;
-    padding:8px 16px;border:1px solid var(--ink-2);background:#fff;color:var(--ink);transition:background .15s,color .15s}
-  button:hover{background:#f0f1f3}
-  button:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
-  button.primary{background:var(--ink);color:#fff;border-color:var(--ink);font-weight:700}
-  button.primary:hover{background:#3a332c}
-  button.ghost{border-color:var(--line);color:var(--mut)}
-  button.danger{border-color:var(--shu);color:var(--shu)}
-  .btnRow{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
-
-  /* ---------- ranking ---------- */
-  .rankRow{display:flex;align-items:center;gap:10px;padding:7px 2px;border-bottom:1px solid var(--line)}
-  .rankRow:last-child{border-bottom:none}
-  .rankNo{font-variant-numeric:tabular-nums;font-weight:700;color:var(--mut);width:1.4em;text-align:center;font-size:13px}
-  .rankName{flex:1;min-width:0;font-size:14px;color:var(--ink);cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .rankName:hover{text-decoration:underline dotted;text-underline-offset:3px}
-  .rankTag{font-size:11px;color:var(--shu);border:1px solid rgba(207,75,47,.4);border-radius:999px;padding:1px 8px;white-space:nowrap}
-  .rankCount{font-variant-numeric:tabular-nums;color:var(--ink-2);font-size:13px}
-  .rankCount b{color:var(--ink);font-size:15px;font-weight:700}
-  .rankCount .s{font-size:11px;margin-left:1px}
-  .shapeTag{display:inline-block;font-size:11px;color:var(--ink);background:#eceef2;border-radius:999px;
-    padding:1px 9px;letter-spacing:.08em;margin-left:2px}
-  .addTheme{cursor:pointer}
-  .addTheme:hover rect{fill:#e9eaee}
-
-  /* ---------- readings ---------- */
+    color:var(--ink);font-family:var(--sans);font-size:14px;padding:7px 10px;width:100%}#pcRoot input:focus{outline:2px solid var(--ink);outline-offset:1px}#pcRoot .hint{font-size:12px;color:var(--ink-2);line-height:1.7;margin-top:8px}#pcRoot .hint em{color:var(--ink);font-style:normal}#pcRoot button{font-family:var(--sans);font-size:13px;letter-spacing:.14em;cursor:pointer;border-radius:4px;
+    padding:8px 16px;border:1px solid var(--ink-2);background:#fff;color:var(--ink);transition:background .15s,color .15s}#pcRoot button:hover{background:#f0f1f3}#pcRoot button:focus-visible{outline:2px solid var(--ink);outline-offset:2px}#pcRoot button.primary{background:var(--ink);color:#fff;border-color:var(--ink);font-weight:700}#pcRoot button.primary:hover{background:#3a332c}#pcRoot button.ghost{border-color:var(--line);color:var(--mut)}#pcRoot button.danger{border-color:var(--shu);color:var(--shu)}#pcRoot .btnRow{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}#pcRoot /* ---------- ranking ---------- */
+  .rankRow{display:flex;align-items:center;gap:10px;padding:7px 2px;border-bottom:1px solid var(--line)}#pcRoot .rankRow:last-child{border-bottom:none}#pcRoot .rankNo{font-variant-numeric:tabular-nums;font-weight:700;color:var(--mut);width:1.4em;text-align:center;font-size:13px}#pcRoot .rankName{flex:1;min-width:0;font-size:14px;color:var(--ink);cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}#pcRoot .rankName:hover{text-decoration:underline dotted;text-underline-offset:3px}#pcRoot .rankTag{font-size:11px;color:var(--shu);border:1px solid rgba(207,75,47,.4);border-radius:999px;padding:1px 8px;white-space:nowrap}#pcRoot .rankCount{font-variant-numeric:tabular-nums;color:var(--ink-2);font-size:13px}#pcRoot .rankCount b{color:var(--ink);font-size:15px;font-weight:700}#pcRoot .rankCount .s{font-size:11px;margin-left:1px}#pcRoot .shapeTag{display:inline-block;font-size:11px;color:var(--ink);background:#eceef2;border-radius:999px;
+    padding:1px 9px;letter-spacing:.08em;margin-left:2px}#pcRoot .addTheme{cursor:pointer}#pcRoot .addTheme:hover rect{fill:#e9eaee}#pcRoot /* ---------- readings ---------- */
   .reading{border-left:2px solid var(--ink);padding:8px 12px;margin-bottom:10px;
-    background:#f7f7f8;font-size:13.5px;line-height:1.8;border-radius:0 4px 4px 0}
-  .reading.shu{border-left-color:var(--shu);background:rgba(207,75,47,.06)}
-  .reading b{color:var(--ink);font-weight:700}
-  .reading.shu b{color:var(--shu)}
-  .readingEmpty{color:var(--ink-2);font-size:13px}
-
-  /* ---------- how to ---------- */
-  details{border:1px solid var(--line);border-radius:6px;padding:12px 16px;margin-bottom:18px}
-  summary{cursor:pointer;font-family:var(--sans);font-weight:700;letter-spacing:.2em;color:var(--ink);font-size:14px}
-  details ol{padding-left:1.4em;margin-top:10px;color:var(--ink-2);font-size:13px}
-  details li{margin-bottom:6px}
-  details li strong{color:var(--ink);font-weight:700}
-
-  .saveNote{font-size:11px;color:var(--mut);letter-spacing:.08em;margin-top:6px;min-height:1.4em}
-
-  /* ---------- setup ---------- */
+    background:#f7f7f8;font-size:13.5px;line-height:1.8;border-radius:0 4px 4px 0}#pcRoot .reading.shu{border-left-color:var(--shu);background:rgba(207,75,47,.06)}#pcRoot .reading b{color:var(--ink);font-weight:700}#pcRoot .reading.shu b{color:var(--shu)}#pcRoot .readingEmpty{color:var(--ink-2);font-size:13px}#pcRoot /* ---------- how to ---------- */
+  details{border:1px solid var(--line);border-radius:6px;padding:12px 16px;margin-bottom:18px}#pcRoot summary{cursor:pointer;font-family:var(--sans);font-weight:700;letter-spacing:.2em;color:var(--ink);font-size:14px}#pcRoot details ol{padding-left:1.4em;margin-top:10px;color:var(--ink-2);font-size:13px}#pcRoot details li{margin-bottom:6px}#pcRoot details li strong{color:var(--ink);font-weight:700}#pcRoot .saveNote{font-size:11px;color:var(--mut);letter-spacing:.08em;margin-top:6px;min-height:1.4em}#pcRoot /* ---------- setup ---------- */
   .setup{max-width:520px;margin:40px auto;background:var(--panel);border:1px solid var(--line);
-    border-radius:8px;padding:34px 34px 30px}
-  .setup h2{font-family:var(--sans);font-weight:700;font-size:22px;letter-spacing:.2em;color:var(--ink);margin-bottom:6px}
-  .setup .lede{color:var(--ink-2);font-size:13px;margin-bottom:22px;line-height:1.9}
-  .field{margin-bottom:16px}
-  .field label{display:block;font-size:12px;letter-spacing:.2em;color:var(--ink-2);margin-bottom:5px}
-
-  /* ---------- prep ---------- */
+    border-radius:8px;padding:34px 34px 30px}#pcRoot .setup h2{font-family:var(--sans);font-weight:700;font-size:22px;letter-spacing:.2em;color:var(--ink);margin-bottom:6px}#pcRoot .setup .lede{color:var(--ink-2);font-size:13px;margin-bottom:22px;line-height:1.9}#pcRoot .field{margin-bottom:16px}#pcRoot .field label{display:block;font-size:12px;letter-spacing:.2em;color:var(--ink-2);margin-bottom:5px}#pcRoot /* ---------- prep ---------- */
   .prep{max-width:640px;margin:0 auto 40px;background:var(--panel);border:1px solid var(--line);
-    border-radius:8px;padding:28px 30px 26px}
-  .prepHead{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;margin-bottom:12px}
-  .prepStepNo{font-size:11px;letter-spacing:.3em;color:var(--mut);margin-bottom:4px}
-  .prep h2{font-size:20px;font-weight:700;letter-spacing:.06em;line-height:1.55;color:var(--ink)}
-  .prepDots{display:flex;gap:6px;margin-bottom:22px}
-  .prepDots span{width:7px;height:7px;border-radius:50%;background:var(--line);cursor:pointer}
-  .prepDots span.done{background:#c3c8d2}
-  .prepDots span.on{background:var(--ink)}
-  .qhint{font-size:12.5px;color:var(--ink-2);margin-bottom:14px;line-height:1.85}
-  .qhint em{color:var(--ink);font-style:normal;font-weight:700}
-  textarea{width:100%;min-height:104px;background:#fff;border:1px solid var(--line);border-radius:4px;
-    color:var(--ink);font-family:var(--sans);font-size:14px;padding:10px;line-height:1.85;resize:vertical}
-  textarea:focus{outline:2px solid var(--ink);outline-offset:1px}
-  .subQ{margin-top:16px;padding-top:14px;border-top:1px dashed var(--line)}
-  .subQ .qhint{margin-bottom:8px}
-  .addRow{display:flex;gap:8px;margin-top:16px;flex-wrap:wrap;align-items:center}
-  .addRow input{flex:1;min-width:150px}
-  select{background:#fff;border:1px solid var(--line);border-radius:4px;color:var(--ink);
-    font-family:var(--sans);font-size:13px;padding:7px 8px}
-  select:focus{outline:2px solid var(--ink);outline-offset:1px}
-  .chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
-  .chip{border:1px solid var(--line);background:#f7f7f8;border-radius:999px;
-    padding:4px 10px 4px 12px;font-size:12.5px;display:flex;align-items:center;gap:9px}
-  .chip .k{color:var(--mut);font-size:11px}
-  .chip .x{cursor:pointer;color:var(--mut);line-height:1;font-size:15px;background:none;border:none;padding:0}
-  .chip .x:hover{color:var(--shu);background:none}
-  .candRow{display:flex;gap:8px;align-items:center;margin-bottom:9px}
-  .candRow input{flex:1;min-width:120px}
-  .prepBlock{padding:16px 0;border-bottom:1px solid var(--line)}
-  .prepBlock:last-child{border-bottom:none}
-  .prepQ{font-size:15px;font-weight:700;letter-spacing:.04em;color:var(--ink);line-height:1.6;margin-bottom:10px}
-  .candBlock{background:#fafafb;border:1px solid var(--line);border-radius:6px;padding:16px;margin:4px 0}
-  .warn{font-size:12.5px;color:var(--shu);margin-top:12px;line-height:1.8}
-  .timerBox{display:flex;align-items:center;gap:16px;margin:18px 0 4px}
-  .timerNum{font-size:32px;font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:.04em;color:var(--ink)}
-  .scanList{font-size:13.5px;color:var(--ink-2);line-height:2.05;padding-left:1.1em;margin-top:6px}
-  .scanList strong{color:var(--ink);font-weight:700}
-  .prepNav{justify-content:space-between;margin-top:22px}
-  .prepNav .right{display:flex;gap:10px}
-  .emptyNote{font-size:13px;color:var(--ink-2);line-height:1.9}
+    border-radius:8px;padding:28px 30px 26px}#pcRoot .prepHead{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;margin-bottom:12px}#pcRoot .prepStepNo{font-size:11px;letter-spacing:.3em;color:var(--mut);margin-bottom:4px}#pcRoot .prep h2{font-size:20px;font-weight:700;letter-spacing:.06em;line-height:1.55;color:var(--ink)}#pcRoot .prepDots{display:flex;gap:6px;margin-bottom:22px}#pcRoot .prepDots span{width:7px;height:7px;border-radius:50%;background:var(--line);cursor:pointer}#pcRoot .prepDots span.done{background:#c3c8d2}#pcRoot .prepDots span.on{background:var(--ink)}#pcRoot .qhint{font-size:12.5px;color:var(--ink-2);margin-bottom:14px;line-height:1.85}#pcRoot .qhint em{color:var(--ink);font-style:normal;font-weight:700}#pcRoot textarea{width:100%;min-height:104px;background:#fff;border:1px solid var(--line);border-radius:4px;
+    color:var(--ink);font-family:var(--sans);font-size:14px;padding:10px;line-height:1.85;resize:vertical}#pcRoot textarea:focus{outline:2px solid var(--ink);outline-offset:1px}#pcRoot .subQ{margin-top:16px;padding-top:14px;border-top:1px dashed var(--line)}#pcRoot .subQ .qhint{margin-bottom:8px}#pcRoot .addRow{display:flex;gap:8px;margin-top:16px;flex-wrap:wrap;align-items:center}#pcRoot .addRow input{flex:1;min-width:150px}#pcRoot select{background:#fff;border:1px solid var(--line);border-radius:4px;color:var(--ink);
+    font-family:var(--sans);font-size:13px;padding:7px 8px}#pcRoot select:focus{outline:2px solid var(--ink);outline-offset:1px}#pcRoot .chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}#pcRoot .chip{border:1px solid var(--line);background:#f7f7f8;border-radius:999px;
+    padding:4px 10px 4px 12px;font-size:12.5px;display:flex;align-items:center;gap:9px}#pcRoot .chip .k{color:var(--mut);font-size:11px}#pcRoot .chip .x{cursor:pointer;color:var(--mut);line-height:1;font-size:15px;background:none;border:none;padding:0}#pcRoot .chip .x:hover{color:var(--shu);background:none}#pcRoot .candRow{display:flex;gap:8px;align-items:center;margin-bottom:9px}#pcRoot .candRow input{flex:1;min-width:120px}#pcRoot .prepBlock{padding:16px 0;border-bottom:1px solid var(--line)}#pcRoot .prepBlock:last-child{border-bottom:none}#pcRoot .prepQ{font-size:15px;font-weight:700;letter-spacing:.04em;color:var(--ink);line-height:1.6;margin-bottom:10px}#pcRoot .candBlock{background:#fafafb;border:1px solid var(--line);border-radius:6px;padding:16px;margin:4px 0}#pcRoot .warn{font-size:12.5px;color:var(--shu);margin-top:12px;line-height:1.8}#pcRoot .timerBox{display:flex;align-items:center;gap:16px;margin:18px 0 4px}#pcRoot .timerNum{font-size:32px;font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:.04em;color:var(--ink)}#pcRoot .scanList{font-size:13.5px;color:var(--ink-2);line-height:2.05;padding-left:1.1em;margin-top:6px}#pcRoot .scanList strong{color:var(--ink);font-weight:700}#pcRoot .prepNav{justify-content:space-between;margin-top:22px}#pcRoot .prepNav .right{display:flex;gap:10px}#pcRoot .emptyNote{font-size:13px;color:var(--ink-2);line-height:1.9}#pcRoot /* ---------- modal ---------- */
+  .veil{position:fixed;inset:0;background:rgba(23,19,15,.45);display:flex;align-items:center;justify-content:center;z-index:50;padding:20px}#pcRoot .modal{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:26px;width:100%;max-width:380px;box-shadow:0 12px 40px rgba(23,19,15,.18)}#pcRoot .modal h3{font-family:var(--sans);font-weight:700;letter-spacing:.18em;font-size:16px;color:var(--ink);margin-bottom:14px}#pcRoot .mErr{font-size:12px;color:var(--shu);line-height:1.7;margin-top:6px;min-height:1em}#pcRoot .hidden{display:none !important}#pcRoot .boardCell{cursor:pointer}#pcRoot .boardCell:hover rect, #pcRoot .boardCell:focus rect{fill:rgba(23,19,15,.06)}#pcRoot .stone{cursor:pointer}
 
-  /* ---------- modal ---------- */
-  .veil{position:fixed;inset:0;background:rgba(23,19,15,.45);display:flex;align-items:center;justify-content:center;z-index:50;padding:20px}
-  .modal{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:26px;width:100%;max-width:380px;box-shadow:0 12px 40px rgba(23,19,15,.18)}
-  .modal h3{font-family:var(--sans);font-weight:700;letter-spacing:.18em;font-size:16px;color:var(--ink);margin-bottom:14px}
-  .mErr{font-size:12px;color:var(--shu);line-height:1.7;margin-top:6px;min-height:1em}
-  .hidden{display:none !important}
+#mobRoot *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}#mobRoot{-webkit-text-size-adjust:100%}#mobRoot{background:var(--bg);color:var(--ink);font-family:var(--sans);
+    font-size:15px;line-height:1.7;min-height:100vh;overflow-x:hidden}#mobRoot .app{max-width:460px;margin:0 auto;padding:18px 16px 40px;min-height:100vh;display:flex;flex-direction:column}#mobRoot header{text-align:center;padding-bottom:14px;margin-bottom:8px}#mobRoot .eyebrow{font-size:10px;letter-spacing:.34em;color:var(--mut);text-transform:uppercase}#mobRoot h1{font-weight:700;font-size:24px;letter-spacing:.16em;margin-top:2px}#mobRoot /* ---------- setup ---------- */
+  .setup{margin:auto 0;display:flex;flex-direction:column;gap:20px;align-items:center;padding:30px 6px}#mobRoot .setup .q{font-size:17px;font-weight:700;letter-spacing:.06em}#mobRoot .ageInput{font-size:44px;font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:.02em;
+    width:2.6em;text-align:center;border:none;border-bottom:2px solid var(--ink);
+    background:transparent;color:var(--ink);font-family:var(--sans);padding:2px 0}#mobRoot .ageInput:focus{outline:none;border-bottom-color:var(--shu)}#mobRoot .ageUnit{font-size:18px;color:var(--ink-2);margin-left:4px}#mobRoot button{font-family:var(--sans);cursor:pointer;border-radius:8px;border:1px solid var(--ink-2);
+    background:#fff;color:var(--ink);font-size:15px;letter-spacing:.06em;padding:12px 22px;transition:background .12s}#mobRoot button:active{background:#eceef2}#mobRoot button.primary{background:var(--ink);color:#fff;border-color:var(--ink);font-weight:700}#mobRoot button.primary:active{background:#3a332c}#mobRoot button:disabled{opacity:.4;pointer-events:none}#mobRoot /* ---------- board ---------- */
+  .boardWrap{margin:4px 0 10px}#mobRoot svg{display:block;width:100%;height:auto}#mobRoot .cellHit{fill:transparent}#mobRoot .cellHit:active{fill:rgba(23,19,15,.06)}#mobRoot .addChip{cursor:pointer}#mobRoot .addChip:active rect{fill:#e6e7ea}#mobRoot /* ---------- reading ---------- */
+  .reading{background:#fff;border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin-top:4px;min-height:56px;
+    display:flex;flex-direction:column;justify-content:center}#mobRoot .reading .rt{font-size:12px;letter-spacing:.1em;color:var(--ink);background:#eceef2;border-radius:999px;
+    padding:2px 10px;align-self:flex-start;margin-bottom:6px}#mobRoot .reading .rm{font-size:14px;line-height:1.75}#mobRoot .reading .empty{font-size:13.5px;color:var(--ink-2)}#mobRoot .reading b{font-weight:700}#mobRoot /* ---------- foot actions ---------- */
+  .foot{display:flex;gap:10px;margin-top:14px}#mobRoot .foot button{flex:1;font-size:14px;padding:12px 8px}#mobRoot /* ---------- sheet (age / stone) ---------- */
+  .veil{position:fixed;inset:0;background:rgba(23,19,15,.42);display:flex;align-items:flex-end;
+    justify-content:center;z-index:40}#mobRoot .veil.hidden{display:none}#mobRoot .sheet{background:#fff;width:100%;max-width:460px;border-radius:18px 18px 0 0;padding:20px 18px calc(20px + env(safe-area-inset-bottom));
+    box-shadow:0 -8px 40px rgba(23,19,15,.2);animation:rise .18s ease-out}
+  @keyframes rise{from{transform:translateY(30px);opacity:.6}to{transform:translateY(0);opacity:1}}
+  @media (prefers-reduced-motion:reduce){#mobRoot .sheet{animation:none}}#mobRoot .sheet h2{font-size:15px;font-weight:700;letter-spacing:.08em;text-align:center;margin-bottom:4px}#mobRoot .sheet .sub{font-size:12.5px;color:var(--ink-2);text-align:center;margin-bottom:16px}#mobRoot .ageGrid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:8px}#mobRoot .ageGrid.wide{grid-template-columns:repeat(5,1fr)}#mobRoot .ageTile{border:1px solid var(--line);border-radius:10px;background:#fff;font-size:17px;font-weight:700;
+    font-variant-numeric:tabular-nums;padding:12px 0;text-align:center;cursor:pointer;color:var(--ink)}#mobRoot .ageTile:active{background:#eceef2}#mobRoot .sheetFoot{display:flex;gap:10px;margin-top:12px}#mobRoot .sheetFoot button{flex:1}#mobRoot .noteBtn{border-color:var(--shu);color:var(--shu)}#mobRoot .hidden{display:none !important}#mobRoot .toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%);background:var(--ink);color:#fff;
+    font-size:13px;padding:9px 16px;border-radius:999px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:60}#mobRoot .toast.on{opacity:1}
 
-  .boardCell{cursor:pointer}
-  .boardCell:hover rect,.boardCell:focus rect{fill:rgba(23,19,15,.06)}
-  .stone{cursor:pointer}
 </style>
 </head>
 <body>
+
+<button class="viewToggle" id="toMob" onclick="window.fusekiSwitch('mob')">モバイル版で見る</button>
+<button class="viewToggle" id="toPc" onclick="window.fusekiSwitch('pc')">PC版で見る</button>
+
+<div id="pcRoot">
+
 <div class="wrap">
 
   <header>
@@ -261,9 +184,77 @@
 
 </div>
 
+
+</div>
+
+<div id="mobRoot">
+
+<div class="app">
+
+  <header>
+    <div class="eyebrow">fuseki mandala</div>
+    <h1>布石マンダラ</h1>
+  </header>
+
+  <!-- setup -->
+  <div id="m_setupView" class="setup">
+    <div class="q">いま、何歳ですか</div>
+    <div><input class="ageInput" id="m_suAge" type="number" inputmode="numeric" pattern="[0-9]*" min="15" max="99" placeholder="00"><span class="ageUnit">歳</span></div>
+    <button class="primary" id="m_suGo" disabled>盤をひらく</button>
+  </div>
+
+  <!-- board -->
+  <div id="m_mainView" class="hidden">
+    <div class="boardWrap" id="m_boardWrap"></div>
+    <div class="reading" id="m_reading"></div>
+    <div class="foot">
+      <button id="m_btnSave">画像に保存</button>
+      <button id="m_btnReset">最初から</button>
+    </div>
+  </div>
+
+</div>
+
+<!-- age / stone sheet -->
+<div id="m_veil" class="veil hidden">
+  <div class="sheet" id="m_sheet"></div>
+</div>
+
+<div id="m_toast" class="toast"></div>
+
+
+</div>
+
 <script>
+
+(function(){
+  const KEY="fuseki-view-pref";
+  function apply(v){
+    document.body.classList.toggle("view-pc", v==="pc");
+    document.body.classList.toggle("view-mob", v==="mob");
+    const toPc=document.getElementById("toPc"), toMob=document.getElementById("toMob");
+    if(toPc) toPc.style.display = v==="mob" ? "block":"none";
+    if(toMob) toMob.style.display = v==="pc" ? "block":"none";
+    try{ localStorage.setItem(KEY, v); }catch(e){}
+    window.scrollTo(0,0);
+  }
+  let pref=null;
+  try{ pref=localStorage.getItem(KEY); }catch(e){}
+  if(pref!=="pc" && pref!=="mob"){
+    pref=(window.matchMedia && window.matchMedia("(max-width: 640px)").matches) ? "mob":"pc";
+  }
+  window.fusekiSwitch=apply;
+  function init(){ apply(pref); }
+  if(document.readyState==="loading") document.addEventListener("DOMContentLoaded", init);
+  else init();
+})();
+
+</script>
+<script>
+
 (function(){
 "use strict";
+const ROOT=document.getElementById("pcRoot");
 
 /* ---------------- state ---------------- */
 const KEY = "fuseki-mandala-v1";
@@ -515,7 +506,7 @@ function renderPrep(){
   document.getElementById("prepBody").innerHTML = html;
 
   // 手記の保存
-  document.querySelectorAll("#prepBody textarea").forEach(ta=>{
+  ROOT.querySelectorAll("#prepBody textarea").forEach(ta=>{
     ta.addEventListener("input", ()=>{
       state.journal[ta.id.replace(/^j_/,"")] = ta.value; save();
     });
@@ -552,7 +543,7 @@ function bindCandBox(){
   };
   document.getElementById("candAdd").addEventListener("click", add);
   inp.addEventListener("keydown", e=>{ if(e.key==="Enter"){ e.preventDefault(); add(); } });
-  document.querySelectorAll("#candArea [data-del]").forEach(b=>{
+  ROOT.querySelectorAll("#candArea [data-del]").forEach(b=>{
     b.addEventListener("click", ()=>{
       const c = state.cands.find(x=>x.id===b.dataset.del);
       if(c && c.dir!==null && c.dir!==undefined) state.themes[c.dir] = "";
@@ -582,7 +573,7 @@ function assignHTML(){
 }
 
 function bindAssign(){
-  document.querySelectorAll("#assignArea [data-rename]").forEach(inp=>{
+  ROOT.querySelectorAll("#assignArea [data-rename]").forEach(inp=>{
     inp.addEventListener("change", ()=>{
       const c = state.cands.find(x=>x.id===inp.dataset.rename); if(!c) return;
       c.name = inp.value.trim();
@@ -590,7 +581,7 @@ function bindAssign(){
       save(); refreshCands();
     });
   });
-  document.querySelectorAll("#assignArea [data-dir]").forEach(sel=>{
+  ROOT.querySelectorAll("#assignArea [data-dir]").forEach(sel=>{
     sel.addEventListener("change", ()=>{
       const c = state.cands.find(x=>x.id===sel.dataset.dir); if(!c) return;
       const v = sel.value==="" ? null : +sel.value;
@@ -731,18 +722,18 @@ function render(){
               : `<p class="readingEmpty">石が増えると、盤が読みはじめます。</p>`;
 
   // 盤のイベント
-  document.querySelectorAll(".boardCell").forEach(c=>{
+  ROOT.querySelectorAll(".boardCell").forEach(c=>{
     const open = ()=>openPlace(+c.dataset.dir, +c.dataset.band);
     c.addEventListener("click", open);
     c.addEventListener("keydown", e=>{ if(e.key==="Enter"||e.key===" "){e.preventDefault();open();} });
   });
-  document.querySelectorAll(".stone").forEach(st=>{
+  ROOT.querySelectorAll(".stone").forEach(st=>{
     const open = ()=>openEdit(st.dataset.stone);
     st.addEventListener("click", e=>{e.stopPropagation();open();});
     st.addEventListener("keydown", e=>{ if(e.key==="Enter"||e.key===" "){e.preventDefault();open();} });
   });
   // ＋テーマ
-  document.querySelectorAll(".addTheme").forEach(a=>{
+  ROOT.querySelectorAll(".addTheme").forEach(a=>{
     const go = ()=>addThemeTo(+a.dataset.add);
     a.addEventListener("click", go);
     a.addEventListener("keydown", e=>{ if(e.key==="Enter"||e.key===" "){e.preventDefault();go();} });
@@ -888,6 +879,260 @@ document.getElementById("btnReset").addEventListener("click", async ()=>{
 
 load();
 })();
+
+</script>
+<script>
+
+(function(){
+"use strict";
+const ROOT=document.getElementById("mobRoot");
+
+const KEY="fuseki-mobile-v1";
+let state={ age:0, theme:"", stones:[] }; // stone:{id,age,note}
+let storageOk=null, sheetBand=null, editingId=null;
+
+function esc(s){return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
+function uid(){return Math.random().toString(36).slice(2,9);}
+
+/* ---------- persistence ---------- */
+async function load(){
+  try{ const r=await window.storage.get(KEY); if(r&&r.value) state=JSON.parse(r.value); storageOk=true; }
+  catch(e){ storageOk=(typeof window.storage!=="undefined"); }
+  if(!state.stones) state.stones=[];
+  route();
+}
+let st=null;
+function save(){ clearTimeout(st); st=setTimeout(async()=>{
+  try{ await window.storage.set(KEY, JSON.stringify(state)); }catch(e){}
+},400); }
+
+/* ---------- age bands ---------- */
+function bands(){
+  const age=state.age||40;
+  const arr=[{lo:0,hi:9,label:"〜9歳"}];
+  if(age<=39){ for(let lo=10;lo<=35;lo+=5) arr.push({lo,hi:lo+4,label:lo+"–"+(lo+4)}); }
+  else{ const last=Math.max(60,Math.floor(age/10)*10);
+        for(let lo=10;lo<=last;lo+=10) arr.push({lo,hi:lo+9,label:lo+"–"+(lo+9)}); }
+  return arr;
+}
+function bandOf(a){ const bs=bands(); for(let i=0;i<bs.length;i++) if(a>=bs[i].lo&&a<=bs[i].hi) return i; return bs.length-1; }
+function themeAges(){ return state.stones.map(s=>s.age).sort((a,b)=>a-b); }
+
+/* ---------- shape reading ---------- */
+const SHAPE_NAME={triangle:"三角型",inverse:"逆三角型",square:"方形型",zigzag:"ジグザグ型"};
+const SHAPE_MSG={
+  triangle:"豊かな原体験が、あなたを呼んでいるようです。もう一度、違う形で関わり直してみませんか？",
+  inverse:"大人になってから、新しい世界が広がっているようです。さらに石を置くことにワクワクしますか？",
+  square:"なぜか周期的に、このテーマに戻されているようです。それは、すでにあなたの道なのかもしれません。",
+  zigzag:"なぜか、一気にこのテーマに戻される時期があるようです。それは、すでにあなたの道なのかもしれません。"
+};
+function shapeOf(){
+  const bs=bands(), nowBand=bandOf(state.age);
+  const counts=bs.map((b,i)=>state.stones.filter(s=>bandOf(s.age)===i).length).slice(0,nowBand+1);
+  const total=counts.reduce((a,b)=>a+b,0); if(total<3) return null;
+  let first=counts.findIndex(c=>c>0); if(first<0) return null;
+  const span=counts.slice(first), occ=span.filter(c=>c>0).length, L=span.length;
+  let gaps=0,seen=false,tail=0;
+  for(const c of span){ if(c>0){ if(seen&&tail>0) gaps++; seen=true; tail=0; } else if(seen) tail++; }
+  if(gaps>=1&&occ>=2) return "zigzag";
+  const half=Math.floor(L/2);
+  const early=span.slice(0,half).reduce((a,b)=>a+b,0);
+  const late=span.slice(L-half).reduce((a,b)=>a+b,0);
+  if(L>=3&&occ>=Math.ceil(L*0.6)&&Math.abs(early-late)<=1) return "square";
+  if(early>late) return "triangle";
+  if(late>early) return "inverse";
+  return "square";
+}
+
+/* ---------- board geometry (7×7, top-focused) ---------- */
+// 7路。線 k=0..6、上辺=k=0。テーマの列は中央 k=3。
+const S=520, LINES=7, CELL=74, EDGE=38, C=EDGE+3*CELL; // 中央列 x座標
+function bandY(i){ return EDGE + i*CELL; } // 帯iのy（上から）
+
+function boardSVG(forExport){
+  const bs=bands();
+  const rows=Math.min(bs.length, LINES-1); // 表示できる帯（上辺の下に最大6行）
+  const stoneR=22;
+  let g="";
+  g+=`<rect x="0" y="0" width="${S}" height="${S}" fill="#ffffff"/>`;
+  // 格子
+  for(let k=0;k<LINES;k++){
+    const p=EDGE+k*CELL;
+    g+=`<line x1="${p}" y1="${EDGE}" x2="${p}" y2="${S-EDGE}" stroke="#c9ced8" stroke-width="0.8"/>`;
+    g+=`<line x1="${EDGE}" y1="${p}" x2="${S-EDGE}" y2="${p}" stroke="#c9ced8" stroke-width="0.8"/>`;
+  }
+  // 帯ラベル（左端の外に小さく）
+  for(let i=0;i<rows;i++){
+    g+=`<text x="${EDGE-6}" y="${bandY(i)+4}" text-anchor="end" font-family="Zen Kaku Gothic New, sans-serif" font-size="12" fill="#8b93a6">${esc(bs[i].label)}</text>`;
+  }
+
+  // 上辺のテーマ（＝タイトル）／未設定なら「＋テーマ」
+  if(state.theme){
+    g+=`<text x="${C}" y="${EDGE-14}" text-anchor="middle" font-family="Zen Kaku Gothic New, sans-serif" font-weight="700" font-size="20" letter-spacing="3" fill="#17130f">${esc(state.theme)}</text>`;
+  }else if(!forExport){
+    g+=`<g class="addChip" data-add="1"><rect x="${C-58}" y="${EDGE-32}" width="116" height="30" rx="15" fill="#f4f4f5" stroke="#c9ced8"/>`+
+       `<text x="${C}" y="${EDGE-17}" text-anchor="middle" dominant-baseline="central" font-family="Zen Kaku Gothic New, sans-serif" font-size="14" fill="#5b6472">＋ テーマ</text></g>`;
+  }
+
+  if(state.theme){
+    // タップ範囲（各帯・中央列に、7石ぶんの幅）
+    if(!forExport){
+      for(let i=0;i<rows;i++){
+        g+=`<g class="cellHit" data-band="${i}" role="button" tabindex="0" aria-label="${esc(bs[i].label)}に石を置く">`+
+           `<rect class="cellHit" x="${EDGE}" y="${bandY(i)-CELL/2}" width="${6*CELL}" height="${CELL}"/></g>`;
+      }
+    }
+    // 石（帯ごと、中央そろえで交点に）
+    const byBand={};
+    state.stones.slice().sort((a,b)=>a.age-b.age).forEach(s=>{ const b=bandOf(s.age); (byBand[b]=byBand[b]||[]).push(s); });
+    Object.keys(byBand).forEach(bi=>{
+      const arr=byBand[bi].slice(0,7); const y=bandY(+bi);
+      const base=Math.floor((arr.length-1)/2);
+      arr.forEach((s,idx)=>{
+        const m=idx-base; const cx=C+m*CELL, cy=y;
+        g+=`<g class="stone" data-stone="${s.id}" role="button" tabindex="0" aria-label="${s.age}歳の石">`+
+           `<circle cx="${cx}" cy="${cy}" r="${stoneR}" fill="#17130f" stroke="#fff" stroke-width="2"/>`+
+           `<text x="${cx}" y="${cy}" text-anchor="middle" dominant-baseline="central" font-family="Zen Kaku Gothic New, sans-serif" font-weight="700" font-size="19" fill="#fff">${s.age}</text>`+
+           (s.note?`<circle cx="${cx}" cy="${cy+13}" r="2.4" fill="#cf4b2f"/>`:"")+
+           `</g>`;
+      });
+    });
+  }
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${S} ${S}" role="img" aria-label="布石マンダラ">${g}</svg>`;
+}
+
+/* ---------- reading render ---------- */
+function readingHTML(){
+  if(!state.theme) return `<div class="empty">上の「＋テーマ」から、ふりかえるテーマをひとつ。</div>`;
+  if(state.stones.length===0) return `<div class="empty">帯にふれて、いちばん古い記憶から一石。</div>`;
+  const shape=shapeOf();
+  if(shape) return `<span class="rt">${SHAPE_NAME[shape]}</span><div class="rm"><b>${esc(state.theme)}</b>——${SHAPE_MSG[shape]}</div>`;
+  return `<div class="rm">石が増えると、盤が読みはじめます。いまは${state.stones.length}石。</div>`;
+}
+
+/* ---------- render ---------- */
+function route(){
+  const opened=!!state.age;
+  document.getElementById("m_setupView").classList.toggle("hidden", opened);
+  document.getElementById("m_mainView").classList.toggle("hidden", !opened);
+  if(opened) render();
+}
+function render(){
+  document.getElementById("m_boardWrap").innerHTML=boardSVG(false);
+  document.getElementById("m_reading").innerHTML=readingHTML();
+  ROOT.querySelectorAll(".addChip").forEach(el=> el.addEventListener("click", addTheme));
+  ROOT.querySelectorAll(".cellHit[data-band]").forEach(el=>{
+    const go=()=>openAge(+el.dataset.band);
+    el.addEventListener("click", go);
+    el.addEventListener("keydown", e=>{ if(e.key==="Enter"||e.key===" "){e.preventDefault();go();} });
+  });
+  ROOT.querySelectorAll(".stone").forEach(el=>{
+    const go=()=>openStone(el.dataset.stone);
+    el.addEventListener("click", e=>{e.stopPropagation();go();});
+    el.addEventListener("keydown", e=>{ if(e.key==="Enter"||e.key===" "){e.preventDefault();go();} });
+  });
+}
+
+function addTheme(){
+  const v=prompt("テーマ（基本は名詞で）", state.theme||"");
+  if(v===null) return;
+  state.theme=v.trim(); save(); render();
+}
+
+/* ---------- sheets ---------- */
+const veil=document.getElementById("m_veil"), sheet=document.getElementById("m_sheet");
+function openSheet(html){ sheet.innerHTML=html; veil.classList.remove("hidden"); }
+function closeSheet(){ veil.classList.add("hidden"); }
+veil.addEventListener("click", e=>{ if(e.target===veil) closeSheet(); });
+
+function openAge(band){
+  sheetBand=band; editingId=null;
+  const b=bands()[band];
+  const hi=Math.min(b.hi, state.age);
+  let tiles="";
+  for(let a=b.lo; a<=hi; a++) tiles+=`<button class="ageTile" data-age="${a}">${a}</button>`;
+  openSheet(`
+    <h2>${esc(state.theme)}</h2>
+    <div class="sub">${b.lo}〜${b.hi}歳のどのあたり？　だいたいでOK</div>
+    <div class="ageGrid">${tiles}</div>
+    <div class="sheetFoot"><button id="sheetCancel">やめる</button></div>`);
+  sheet.querySelectorAll("[data-age]").forEach(t=> t.addEventListener("click", ()=> placeStone(+t.dataset.age)));
+  document.getElementById("sheetCancel").addEventListener("click", closeSheet);
+}
+
+function placeStone(age){
+  const band=bandOf(age);
+  const inBand=state.stones.filter(s=>bandOf(s.age)===band).length;
+  if(inBand>=7){ closeSheet(); toast("この年代は7石までです"); return; }
+  state.stones.push({id:uid(), age, note:""});
+  save(); closeSheet(); render();
+}
+
+function openStone(id){
+  const s=state.stones.find(x=>x.id===id); if(!s) return;
+  editingId=id;
+  openSheet(`
+    <h2>${esc(state.theme)}・${s.age}歳</h2>
+    <div class="sub">${s.note? esc(s.note) : "この石をどうしますか"}</div>
+    <div class="sheetFoot">
+      <button class="noteBtn" id="stoneNote">ひとことメモ</button>
+      <button id="stoneDel">取り除く</button>
+    </div>
+    <div class="sheetFoot"><button id="stoneClose">とじる</button></div>`);
+  document.getElementById("stoneDel").addEventListener("click", ()=>{
+    state.stones=state.stones.filter(x=>x.id!==id); save(); closeSheet(); render();
+  });
+  document.getElementById("stoneNote").addEventListener("click", ()=>{
+    const v=prompt("そのとき、なにがあった？", s.note||""); if(v===null) return;
+    s.note=v.trim(); save(); closeSheet(); render();
+  });
+  document.getElementById("stoneClose").addEventListener("click", closeSheet);
+}
+
+/* ---------- toast ---------- */
+let tt=null;
+function toast(msg){ const el=document.getElementById("m_toast"); el.textContent=msg; el.classList.add("on");
+  clearTimeout(tt); tt=setTimeout(()=>el.classList.remove("on"),1600); }
+
+/* ---------- setup ---------- */
+const ageInp=document.getElementById("m_suAge"), suGo=document.getElementById("m_suGo");
+ageInp.addEventListener("input", ()=>{
+  const a=parseInt(ageInp.value,10);
+  suGo.disabled=!(a>=15&&a<=99);
+});
+suGo.addEventListener("click", ()=>{
+  const a=parseInt(ageInp.value,10); if(!(a>=15&&a<=99)) return;
+  state.age=a; save(); ageInp.blur(); route();
+});
+
+/* ---------- actions ---------- */
+document.getElementById("m_btnSave").addEventListener("click", ()=>{
+  const svgStr=boardSVG(true);
+  const img=new Image();
+  const blob=new Blob([svgStr],{type:"image/svg+xml;charset=utf-8"});
+  const url=URL.createObjectURL(blob);
+  img.onload=()=>{
+    const cv=document.createElement("canvas"); cv.width=1040; cv.height=1040;
+    const ctx=cv.getContext("2d"); ctx.fillStyle="#fff"; ctx.fillRect(0,0,1040,1040);
+    ctx.drawImage(img,0,0,1040,1040); URL.revokeObjectURL(url);
+    const a=document.createElement("a");
+    a.download=(state.theme||"fuseki")+"_布石マンダラ.png";
+    a.href=cv.toDataURL("image/png"); a.click();
+    toast("画像を保存しました");
+  };
+  img.onerror=()=>{ URL.revokeObjectURL(url); toast("保存に失敗しました"); };
+  img.src=url;
+});
+document.getElementById("m_btnReset").addEventListener("click", async()=>{
+  if(!confirm("盤をまっさらに戻します。よろしいですか？")) return;
+  state={ age:0, theme:"", stones:[] };
+  try{ await window.storage.delete(KEY); }catch(e){}
+  ageInp.value=""; suGo.disabled=true; route();
+});
+
+load();
+})();
+
 </script>
 </body>
 </html>
