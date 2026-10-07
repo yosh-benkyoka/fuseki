@@ -403,7 +403,8 @@ function freshState(){
 // 共有リンク用：盤を最小限の形に
 function toShare(){
   return { v:1, n:state.name, a:state.age, t:state.themes.slice(0,4),
-           s:state.stones.map(x=> x.note ? [x.dir, x.age, x.note] : [x.dir, x.age]) };
+           s:state.stones.map(x=> Number.isInteger(x.band) ? [x.dir, x.age, x.note||"", x.band]
+                                : x.note ? [x.dir, x.age, x.note] : [x.dir, x.age]) };
 }
 function fromShare(o){
   if(!o || typeof o!=="object") throw new Error("リンクの中身が読めませんでした。");
@@ -416,7 +417,9 @@ function fromShare(o){
     if(!Array.isArray(x)) return;
     const dir=+x[0], a=window.fusekiShare.clampAge(x[1]);
     if(!(dir>=0&&dir<=3) || a===null || !themes[dir]) return;
-    stones.push({id:uid(), dir, age:a, note:String(x[2]||"").slice(0,200)});
+    const st={id:uid(), dir, age:a, note:String(x[2]||"").slice(0,200)};
+    const bd=+x[3]; if(Number.isInteger(bd) && bd>=0 && bd<=3 && x.length>3) st.band=bd;
+    stones.push(st);
   });
   return { name:String(o.n||"").slice(0,40) || "だれか", age, themes, stones,
            prepDone:true, prepStep:0, scan:{}, journal:{}, cands:[] };
@@ -490,6 +493,11 @@ function bands(){
   return arr;
 }
 function maxAge(){ const bs=bands(); return bs[bs.length-1].hi; }
+// 石がどの輪にあるか：24歳以下の盤では、置いた輪（s.band）をそのまま使う
+function stoneBand(s){
+  if(isYouth() && Number.isInteger(s.band) && s.band>=0 && s.band<bands().length) return s.band;
+  return bandOf(s.age);
+}
 function bandOf(a){
   const bs = bands();
   for(let i=0;i<bs.length;i++) if(a>=bs[i].lo && a<=bs[i].hi) return i;
@@ -582,7 +590,7 @@ function boardSVG(forExport){
 
     const byBand = {};
     state.stones.filter(s=>s.dir===dir.id).sort((a,b)=>a.age-b.age).forEach(s=>{
-      const b = bandOf(s.age); (byBand[b]=byBand[b]||[]).push(s);
+      const b = stoneBand(s); (byBand[b]=byBand[b]||[]).push(s);
     });
     Object.keys(byBand).forEach(bi=>{
       const arr = byBand[bi].slice(0,7); const r = ringR(+bi); // 1年代あたり最大7石
@@ -795,7 +803,7 @@ function narrowing(dir){
 function shapeOf(dir){
   const bs = bands();
   const nowBand = bandOf(state.age);
-  const counts = bs.map((b,i)=> state.stones.filter(s=>s.dir===dir && bandOf(s.age)===i).length);
+  const counts = bs.map((b,i)=> state.stones.filter(s=>s.dir===dir && stoneBand(s)===i).length);
   const total = counts.reduce((a,b)=>a+b,0);
 
   // 若い時期の石数（ふだんは〜19歳、24歳以下の盤では中学まで）
@@ -977,8 +985,8 @@ document.getElementById("mSave").addEventListener("click", ()=>{
   }
   // 1年代あたり最大7石
   if(!editingStoneId){
-    const band = bandOf(a);
-    const inBand = state.stones.filter(s=>s.dir===modalDir && bandOf(s.age)===band).length;
+    const band = isYouth() ? modalBand : bandOf(a);
+    const inBand = state.stones.filter(s=>s.dir===modalDir && stoneBand(s)===band).length;
     if(inBand>=7){
       err.textContent = "この年代には、ひとつのテーマにつき7石までです。";
       return;
@@ -990,7 +998,9 @@ document.getElementById("mSave").addEventListener("click", ()=>{
     const s = state.stones.find(x=>x.id===editingStoneId);
     if(s){ s.age=a; s.note=note; }
   }else{
-    state.stones.push({id:uid(), dir:modalDir, age:a, note});
+    const stone = {id:uid(), dir:modalDir, age:a, note};
+    if(isYouth()) stone.band = modalBand;   // 置いた輪を記録（年齢で動かさない）
+    state.stones.push(stone);
   }
   save(); closeModal(); render();
 });
@@ -1082,7 +1092,8 @@ function uid(){return Math.random().toString(36).slice(2,9);}
 
 /* ---------- persistence ---------- */
 function toShare(){
-  return { v:1, a:state.age, t:state.theme, s:state.stones.map(x=> x.note ? [x.age, x.note] : [x.age]) };
+  return { v:1, a:state.age, t:state.theme, s:state.stones.map(x=> Number.isInteger(x.band) ? [x.age, x.note||"", x.band]
+                                                         : x.note ? [x.age, x.note] : [x.age]) };
 }
 function fromShare(o){
   if(!o || typeof o!=="object") throw new Error("リンクの中身が読めませんでした。");
@@ -1092,7 +1103,9 @@ function fromShare(o){
   (Array.isArray(o.s)?o.s:[]).forEach(x=>{
     if(!Array.isArray(x)) return;
     const a=window.fusekiShare.clampAge(x[0]); if(a===null) return;
-    stones.push({id:uid(), age:a, note:String(x[1]||"").slice(0,200)});
+    const st={id:uid(), age:a, note:String(x[1]||"").slice(0,200)};
+    const bd=+x[2]; if(Number.isInteger(bd) && bd>=0 && bd<=3 && x.length>2) st.band=bd;
+    stones.push(st);
   });
   return { age, theme:String(o.t||"").slice(0,40), stones };
 }
@@ -1136,6 +1149,13 @@ function bands(){
         for(let lo=10;lo<=last;lo+=10) arr.push({lo,hi:lo+9,label:lo+"–"+(lo+9)}); }
   return arr;
 }
+// 24歳以下の盤では、置いた輪（s.band）をそのまま使う
+function stoneBand(s){
+  if(isYouth() && Number.isInteger(s.band) && s.band>=0 && s.band<bands().length) return s.band;
+  return bandOf(s.age);
+}
+// 24歳以下の盤で、輪ごとに選べる年齢（留年や早生まれもあるので前後に重ねる）
+const YOUTH_PICK=[[0,12],[12,16],[15,20],[18,99]];
 function bandOf(a){ const bs=bands(); for(let i=0;i<bs.length;i++) if(a>=bs[i].lo&&a<=bs[i].hi) return i; return bs.length-1; }
 function themeAges(){ return state.stones.map(s=>s.age).sort((a,b)=>a-b); }
 
@@ -1151,7 +1171,7 @@ const YOUTH_INVERSE="最近になって、新しい世界が広がっている�
 function shapeMsg(shape){ return (shape==="inverse" && isYouth()) ? YOUTH_INVERSE : SHAPE_MSG[shape]; }
 function shapeOf(){
   const bs=bands(), nowBand=bandOf(state.age);
-  const counts=bs.map((b,i)=>state.stones.filter(s=>bandOf(s.age)===i).length);
+  const counts=bs.map((b,i)=>state.stones.filter(s=>stoneBand(s)===i).length);
   const total=counts.reduce((a,b)=>a+b,0);
   const youngHi=isYouth() ? 14 : 19;   // 24歳以下の盤では中学まで
   const youngCount=bs.reduce((sum,b,i)=> sum + (b.hi<=youngHi ? counts[i] : 0), 0);
@@ -1208,7 +1228,7 @@ function boardSVG(forExport){
     }
     // 石（帯ごと、中央そろえで交点に）
     const byBand={};
-    state.stones.slice().sort((a,b)=>a.age-b.age).forEach(s=>{ const b=bandOf(s.age); (byBand[b]=byBand[b]||[]).push(s); });
+    state.stones.slice().sort((a,b)=>a.age-b.age).forEach(s=>{ const b=stoneBand(s); (byBand[b]=byBand[b]||[]).push(s); });
     Object.keys(byBand).forEach(bi=>{
       const arr=byBand[bi].slice(0,7); const y=bandY(+bi);
       const base=Math.floor((arr.length-1)/2);
@@ -1286,13 +1306,14 @@ veil.addEventListener("click", e=>{ if(e.target===veil) closeSheet(); });
 function openAge(band){
   sheetBand=band; editingId=null;
   const b=bands()[band];
-  const hi=Math.min(b.hi, state.age);
-  if(hi<b.lo){ toast("まだこれからの年代です"); return; }
+  const lo=isYouth() ? YOUTH_PICK[band][0] : b.lo;
+  const hi=Math.min(isYouth() ? YOUTH_PICK[band][1] : b.hi, state.age);
+  if(hi<lo){ toast("まだこれからの年代です"); return; }
   let tiles="";
-  for(let a=b.lo; a<=hi; a++) tiles+=`<button class="ageTile" data-age="${a}">${a}</button>`;
+  for(let a=lo; a<=hi; a++) tiles+=`<button class="ageTile" data-age="${a}">${a}</button>`;
   openSheet(`
     <h2>${esc(state.theme)}</h2>
-    <div class="sub">${isYouth()? esc(b.label)+"（"+b.lo+"〜"+hi+"歳）" : b.lo+"〜"+b.hi+"歳"}のどのあたり？　だいたいでOK</div>
+    <div class="sub">${isYouth()? esc(b.label)+"（"+lo+"〜"+hi+"歳）" : b.lo+"〜"+b.hi+"歳"}のどのあたり？　だいたいでOK</div>
     <div class="ageGrid">${tiles}</div>
     <div class="sheetFoot"><button id="sheetCancel">やめる</button></div>`);
   sheet.querySelectorAll("[data-age]").forEach(t=> t.addEventListener("click", ()=> placeStone(+t.dataset.age)));
@@ -1300,10 +1321,12 @@ function openAge(band){
 }
 
 function placeStone(age){
-  const band=bandOf(age);
-  const inBand=state.stones.filter(s=>bandOf(s.age)===band).length;
+  const band=isYouth() ? sheetBand : bandOf(age);
+  const inBand=state.stones.filter(s=>stoneBand(s)===band).length;
   if(inBand>=7){ closeSheet(); toast("この年代は7石までです"); return; }
-  state.stones.push({id:uid(), age, note:""});
+  const stone={id:uid(), age, note:""};
+  if(isYouth()) stone.band=sheetBand;   // 置いた輪を記録（年齢で動かさない）
+  state.stones.push(stone);
   save(); closeSheet(); render();
 }
 
