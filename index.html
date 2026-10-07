@@ -155,6 +155,7 @@
           <h2>盤</h2>
           <div class="btnRow">
             <button class="primary" id="btnExport">画像として書き出す</button>
+            <button id="btnShare">URLで共有</button>
             <button id="btnPrep">テーマを見つける</button>
             <button class="danger" id="btnReset">最初から</button>
           </div>
@@ -207,6 +208,7 @@
     <div class="reading" id="m_reading"></div>
     <div class="foot">
       <button id="m_btnSave">画像に保存</button>
+      <button id="m_btnShare">URLで共有</button>
       <button id="m_btnReset">最初から</button>
     </div>
   </div>
@@ -224,6 +226,92 @@
 </div>
 
 <script>
+
+/* ---------- 共通：保存（localStorage）と共有リンク ---------- */
+window.fusekiStore = {
+  async get(k){ try{ const v=localStorage.getItem(k); return v===null ? null : {key:k, value:v}; }
+                catch(e){ if(window.storage) return window.storage.get(k); throw e; } },
+  async set(k,v){ try{ localStorage.setItem(k,v); return {key:k, value:v}; }
+                  catch(e){ if(window.storage) return window.storage.set(k,v); throw e; } },
+  async delete(k){ try{ localStorage.removeItem(k); return {key:k, deleted:true}; }
+                   catch(e){ if(window.storage) return window.storage.delete(k); throw e; } }
+};
+window.fusekiShare = (function(){
+  function b64u(bytes){
+    let bin=""; for(let i=0;i<bytes.length;i+=0x8000) bin+=String.fromCharCode.apply(null, bytes.subarray(i,i+0x8000));
+    return btoa(bin).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"");
+  }
+  function unb64u(str){
+    let t=str.replace(/-/g,"+").replace(/_/g,"/"); while(t.length%4) t+="=";
+    const bin=atob(t); const out=new Uint8Array(bin.length);
+    for(let i=0;i<bin.length;i++) out[i]=bin.charCodeAt(i);
+    return out;
+  }
+  async function pipe(bytes, stream){
+    return new Uint8Array(await new Response(new Blob([bytes]).stream().pipeThrough(stream)).arrayBuffer());
+  }
+  async function encode(obj){
+    const raw=new TextEncoder().encode(JSON.stringify(obj));
+    if(typeof CompressionStream!=="undefined"){
+      try{ return "z"+b64u(await pipe(raw, new CompressionStream("deflate-raw"))); }catch(e){}
+    }
+    return "j"+b64u(raw);
+  }
+  async function decode(str){
+    const tag=str.charAt(0), bytes=unb64u(str.slice(1));
+    let raw;
+    if(tag==="z"){
+      if(typeof DecompressionStream==="undefined") throw new Error("このブラウザでは共有リンクをひらけません。");
+      raw=await pipe(bytes, new DecompressionStream("deflate-raw"));
+    }else if(tag==="j"){ raw=bytes; }
+    else throw new Error("リンクの形式が正しくありません。");
+    return JSON.parse(new TextDecoder().decode(raw));
+  }
+  // #p=… はPC版の盤、#m=… はスマホ版の盤
+  function param(){
+    const m=(location.hash||"").match(/^#([pm])=([A-Za-z0-9_-]+)$/);
+    return m ? {kind:m[1], data:m[2]} : null;
+  }
+  function base(){ return location.href.split("#")[0]; }
+  async function link(kind, obj){ return base()+"#"+kind+"="+(await encode(obj)); }
+  function clear(){ try{ history.replaceState(null,"",base()); }catch(e){ location.hash=""; } }
+  async function copy(url){
+    try{ await navigator.clipboard.writeText(url); return true; }catch(e){}
+    window.prompt("このリンクをコピーしてください", url); return false;
+  }
+  function clampAge(a){ a=Math.round(+a); return (isFinite(a) && a>=0 && a<=99) ? a : null; }
+  return { encode, decode, param, link, clear, copy, clampAge };
+})();
+// 書き出し画像用：盤で使っている文字だけをGoogle Fontsから取り寄せ、SVGに埋め込む
+// （画像として描くSVGはページのWebフォントを使えないため）
+window.fusekiEmbedFonts = async function(svgStr){
+  try{
+    const texts = (svgStr.match(/>([^<>]+)</g) || []).map(t=>t.slice(1,-1)).join("");
+    const chars = Array.from(new Set(Array.from(texts.replace(/&[a-z#0-9]+;/gi,"") + "0123456789"))).join("");
+    const cssUrl = "https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;700&text=" + encodeURIComponent(chars);
+    let css = await (await fetch(cssUrl)).text();
+    const urls = Array.from(new Set(css.match(/https:\/\/[^)'"]+/g) || []));
+    for(const u of urls){
+      const blob = await (await fetch(u)).blob();
+      const dataUrl = await new Promise((res, rej)=>{ const r=new FileReader(); r.onload=()=>res(r.result); r.onerror=rej; r.readAsDataURL(blob); });
+      css = css.split(u).join(dataUrl);
+    }
+    return svgStr.replace(/(<svg[^>]*>)/, `$1<style>${css}</style>`);
+  }catch(e){
+    return svgStr;   // 取り寄せに失敗したら、これまでどおり端末のフォントで書き出す
+  }
+};
+// 埋め込んだフォントが描画に反映されるのを待ってから使う
+window.fusekiLoadImage = function(url){
+  return new Promise((res, rej)=>{
+    const img = new Image();
+    img.onload = async ()=>{ try{ if(img.decode) await img.decode(); }catch(e){} setTimeout(()=>res(img), 60); };
+    img.onerror = rej;
+    img.src = url;
+  });
+};
+// 別の共有リンクを同じタブで貼りつけたときは読み直す
+window.addEventListener("hashchange", ()=>{ if(window.fusekiShare.param()) location.reload(); });
 
 (function(){
   const KEY="fuseki-view-pref";
@@ -244,8 +332,13 @@
   // ?seed=... はPC版のテスト盤なので、seed指定時はPC版を表示（好みは書き換えない）
   let seeded=false;
   try{ seeded=/[?&#]seed=/.test(location.search+location.hash); }catch(e){}
+  // 共有リンクは、つくられた側の版でひらく（好みは書き換えない）
+  const shared=window.fusekiShare.param();
   window.fusekiSwitch=apply;
-  function init(){ apply(seeded ? "pc" : pref, seeded); }
+  function init(){
+    if(shared) apply(shared.kind==="m" ? "mob" : "pc", true);
+    else apply(seeded ? "pc" : pref, seeded);
+  }
   if(document.readyState==="loading") document.addEventListener("DOMContentLoaded", init);
   else init();
 })();
@@ -270,6 +363,7 @@ let state = { name:"", age:0, themes:["","","",""], stones:[],
 // stone: {id,dir,age,note}  /  cand: {id,name,kind:"mono"|"hito",grain:null|true|false,dir:null|0..3}
 let editingStoneId = null, modalDir = null, modalBand = null;
 let storageOk = null;
+let viewOnly = false;   // 共有リンクでひらいた盤（保存しない）
 let timerId = null, timerLeft = 180, timerRunning = false;
 
 function esc(s){return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
@@ -302,14 +396,50 @@ function seedFromURL(){
   return { name:sd.name, age:sd.age, themes:sd.themes.slice(), stones,
            prepDone:true, prepStep:0, scan:{}, journal:{}, cands:[] };
 }
+function freshState(){
+  return { name:"", age:0, themes:["","","",""], stones:[],
+           prepDone:false, prepStep:0, scan:{}, journal:{}, cands:[] };
+}
+// 共有リンク用：盤を最小限の形に
+function toShare(){
+  return { v:1, n:state.name, a:state.age, t:state.themes.slice(0,4),
+           s:state.stones.map(x=> x.note ? [x.dir, x.age, x.note] : [x.dir, x.age]) };
+}
+function fromShare(o){
+  if(!o || typeof o!=="object") throw new Error("リンクの中身が読めませんでした。");
+  const age=window.fusekiShare.clampAge(o.a);
+  if(age===null || age<15) throw new Error("リンクの中身が読めませんでした。");
+  const themes=["","","",""];
+  (Array.isArray(o.t)?o.t:[]).slice(0,4).forEach((t,i)=>{ themes[i]=String(t||"").slice(0,40); });
+  const stones=[];
+  (Array.isArray(o.s)?o.s:[]).forEach(x=>{
+    if(!Array.isArray(x)) return;
+    const dir=+x[0], a=window.fusekiShare.clampAge(x[1]);
+    if(!(dir>=0&&dir<=3) || a===null || !themes[dir]) return;
+    stones.push({id:uid(), dir, age:a, note:String(x[2]||"").slice(0,200)});
+  });
+  return { name:String(o.n||"").slice(0,40) || "だれか", age, themes, stones,
+           prepDone:true, prepStep:0, scan:{}, journal:{}, cands:[] };
+}
 async function load(){
+  const sp=window.fusekiShare.param();
+  if(sp && sp.kind==="p"){
+    try{
+      state=fromShare(await window.fusekiShare.decode(sp.data));
+      viewOnly=true; storageOk=true; route(); return;
+    }catch(e){
+      alert((e && e.message) || "共有リンクをひらけませんでした。");
+      window.fusekiShare.clear();
+    }
+  }
+  viewOnly=false;
   const seeded=seedFromURL();
   if(seeded){ state=seeded; storageOk=true; route(); return; }  // シード時は保存を読まない
   try{
-    const r = await window.storage.get(KEY);
-    if(r && r.value){ state = JSON.parse(r.value); storageOk = true; }
-    else storageOk = true;
-  }catch(e){ if(storageOk===null) storageOk = (typeof window.storage!=="undefined"); }
+    const r = await window.fusekiStore.get(KEY);
+    if(r && r.value){ state = JSON.parse(r.value); }
+    storageOk = true;
+  }catch(e){ storageOk = false; }
   migrate();
   route();
 }
@@ -325,10 +455,11 @@ function migrate(){
 }
 let saveTimer=null;
 function save(){
+  if(viewOnly) return;   // 共有された盤は、取り込むまで保存しない
   clearTimeout(saveTimer);
   saveTimer = setTimeout(async ()=>{
     try{
-      await window.storage.set(KEY, JSON.stringify(state));
+      await window.fusekiStore.set(KEY, JSON.stringify(state));
       storageOk = true; setSaveNote("この端末に保存されました。");
     }catch(e){ storageOk=false; setSaveNote("ブラウザを閉じると、データは消えますのでご注意ください。"); }
   }, 500);
@@ -336,8 +467,17 @@ function save(){
 function setSaveNote(t){ const el=document.getElementById("saveNote"); if(el) el.textContent=t; }
 
 /* ---------------- age bands ---------------- */
+// 24歳以下は、学校の区切りで輪を引く
+function isYouth(){ return (state.age || 40) <= 24; }
+const YOUTH_BANDS = [
+  {lo:0,  hi:11, label:"小学校まで"},
+  {lo:12, hi:14, label:"中学"},
+  {lo:15, hi:17, label:"高校"},
+  {lo:18, hi:24, label:"それ以降"}
+];
 function bands(){
   const age = state.age || 40;
+  if(isYouth()) return YOUTH_BANDS.map(b=>Object.assign({}, b));
   const arr = [{lo:0, hi:9, label:"〜9歳"}];
   if(age <= 39){
     // 〜39歳：5歳刻み。35–39までかならず引く（未来の局面として空けておく）
@@ -638,6 +778,8 @@ const SHAPE_MSG = {
   zigzag:    "なぜか、一気にこのテーマに戻される時期があるようです。それは、すでにあなたの道なのかもしれません。"
 };
 const SHAPE_NAME = { triangle:"三角型", inverse:"逆三角型", square:"方形型", zigzag:"ジグザグ型" };
+const YOUTH_INVERSE = "最近になって、新しい世界が広がっているようです。さらに石を置くことにワクワクしますか？";
+function shapeMsg(shape){ return (shape==="inverse" && isYouth()) ? YOUTH_INVERSE : SHAPE_MSG[shape]; }
 
 // 型とは別の、いちばんカジュアルに出る読み：還ってくる間隔が縮まっているか
 function narrowing(dir){
@@ -656,8 +798,9 @@ function shapeOf(dir){
   const counts = bs.map((b,i)=> state.stones.filter(s=>s.dir===dir && bandOf(s.age)===i).length);
   const total = counts.reduce((a,b)=>a+b,0);
 
-  // 10代以下（〜19歳）の石数
-  const youngCount = bs.reduce((sum,b,i)=> sum + (b.hi<=19 ? counts[i] : 0), 0);
+  // 若い時期の石数（ふだんは〜19歳、24歳以下の盤では中学まで）
+  const youngHi = isYouth() ? 14 : 19;
+  const youngCount = bs.reduce((sum,b,i)=> sum + (b.hi<=youngHi ? counts[i] : 0), 0);
   // いまの年代の石数
   const nowCount = counts[nowBand] || 0;
 
@@ -702,7 +845,7 @@ function readings(){
     const shape = shapeOf(dir.id);
     if(shape){
       anyRead = true;
-      out.push({cls:"", html:`<b>${esc(label)}</b>——<span class="shapeTag">${SHAPE_NAME[shape]}</span><br>${SHAPE_MSG[shape]}`});
+      out.push({cls:"", html:`<b>${esc(label)}</b>——<span class="shapeTag">${SHAPE_NAME[shape]}</span><br>${shapeMsg(shape)}`});
     }
     const nw = narrowing(dir.id);
     if(nw){
@@ -732,7 +875,8 @@ function route(){
 }
 
 function render(){
-  document.getElementById("boardBox").innerHTML = boardSVG(false);
+  document.getElementById("boardBox").innerHTML = boardSVG(viewOnly);
+  ["btnShare","btnPrep","btnReset"].forEach(id=> document.getElementById(id).classList.toggle("hidden", viewOnly));
 
   // テーマ一覧＝石数のランキング
   const tl = document.getElementById("themeList");
@@ -745,7 +889,7 @@ function render(){
         <span class="rankName" data-rename-dir="${r.dir}" title="クリックで名前を変える">${esc(r.name)}</span>
         <span class="rankCount"><b>${r.count}</b><span class="s">石</span></span>
       </div>`).join("");
-    tl.querySelectorAll("[data-rename-dir]").forEach(el=>{
+    if(!viewOnly) tl.querySelectorAll("[data-rename-dir]").forEach(el=>{
       el.addEventListener("click", ()=> renameTheme(+el.dataset.renameDir));
     });
   }
@@ -756,7 +900,8 @@ function render(){
     rs.length ? rs.map(r=>`<div class="reading ${r.cls}">${r.html}</div>`).join("")
               : `<p class="readingEmpty">もう少し石が増えると、表示されます。</p>`;
 
-  // 盤のイベント
+  // 盤のイベント（共有された盤は見るだけ）
+  if(viewOnly) return;
   ROOT.querySelectorAll(".boardCell").forEach(c=>{
     const open = ()=>openPlace(+c.dataset.dir, +c.dataset.band);
     c.addEventListener("click", open);
@@ -883,33 +1028,38 @@ document.getElementById("btnPrep").addEventListener("click", ()=>{
 });
 
 /* ---------------- actions ---------------- */
-document.getElementById("btnExport").addEventListener("click", ()=>{
-  const svgStr = boardSVG(true);
-  const img = new Image();
+document.getElementById("btnExport").addEventListener("click", async ()=>{
+  const svgStr = await window.fusekiEmbedFonts(boardSVG(true));
   const blob = new Blob([svgStr], {type:"image/svg+xml;charset=utf-8"});
   const url = URL.createObjectURL(blob);
-  img.onload = ()=>{
+  try{
+    const img = await window.fusekiLoadImage(url);
     const cv = document.createElement("canvas");
     cv.width=1520; cv.height=1520;
     const ctx = cv.getContext("2d");
     ctx.drawImage(img,0,0,1520,1520);
-    URL.revokeObjectURL(url);
     const a = document.createElement("a");
     a.download = (state.name||"fuseki") + "_布石マンダラ.png";
     a.href = cv.toDataURL("image/png");
     a.click();
-  };
-  img.onerror = ()=>{ URL.revokeObjectURL(url); setSaveNote("書き出しに失敗しました。もう一度どうぞ。"); };
-  img.src = url;
+  }catch(e){ setSaveNote("書き出しに失敗しました。もう一度どうぞ。"); }
+  finally{ URL.revokeObjectURL(url); }
 });
 
 document.getElementById("btnReset").addEventListener("click", async ()=>{
   if(!confirm("盤上の石をすべて取り除き、まっさらに戻します。よろしいですか？")) return;
   stopTimer(); timerLeft = 180;
-  state = { name:"", age:0, themes:["","","",""], stones:[],
-            prepDone:false, prepStep:0, scan:{}, journal:{}, cands:[] };
-  try{ await window.storage.delete(KEY); }catch(e){}
+  state = freshState();
+  try{ await window.fusekiStore.delete(KEY); }catch(e){}
   route();
+});
+
+/* ---------------- 共有 ---------------- */
+document.getElementById("btnShare").addEventListener("click", async ()=>{
+  if(!state.stones.length && !state.themes.some(Boolean)){ setSaveNote("テーマや石を置いてから共有してください。"); return; }
+  const url = await window.fusekiShare.link("p", toShare());
+  const ok = await window.fusekiShare.copy(url);
+  setSaveNote(ok ? "共有用のリンクをコピーしました。ひらいた人には、見るだけの盤として表示されます。" : "");
 });
 
 load();
@@ -925,25 +1075,61 @@ const ROOT=document.getElementById("mobRoot");
 const KEY="fuseki-mobile-v1";
 let state={ age:0, theme:"", stones:[] }; // stone:{id,age,note}
 let storageOk=null, sheetBand=null, editingId=null;
+let viewOnly=false;   // 共有リンクでひらいた盤（保存しない）
 
 function esc(s){return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
 function uid(){return Math.random().toString(36).slice(2,9);}
 
 /* ---------- persistence ---------- */
+function toShare(){
+  return { v:1, a:state.age, t:state.theme, s:state.stones.map(x=> x.note ? [x.age, x.note] : [x.age]) };
+}
+function fromShare(o){
+  if(!o || typeof o!=="object") throw new Error("リンクの中身が読めませんでした。");
+  const age=window.fusekiShare.clampAge(o.a);
+  if(age===null || age<15) throw new Error("リンクの中身が読めませんでした。");
+  const stones=[];
+  (Array.isArray(o.s)?o.s:[]).forEach(x=>{
+    if(!Array.isArray(x)) return;
+    const a=window.fusekiShare.clampAge(x[0]); if(a===null) return;
+    stones.push({id:uid(), age:a, note:String(x[1]||"").slice(0,200)});
+  });
+  return { age, theme:String(o.t||"").slice(0,40), stones };
+}
 async function load(){
-  try{ const r=await window.storage.get(KEY); if(r&&r.value) state=JSON.parse(r.value); storageOk=true; }
-  catch(e){ storageOk=(typeof window.storage!=="undefined"); }
+  const sp=window.fusekiShare.param();
+  if(sp && sp.kind==="m"){
+    try{
+      state=fromShare(await window.fusekiShare.decode(sp.data));
+      viewOnly=true; storageOk=true; route(); return;
+    }catch(e){
+      alert((e && e.message) || "共有リンクをひらけませんでした。");
+      window.fusekiShare.clear();
+    }
+  }
+  viewOnly=false;
+  try{ const r=await window.fusekiStore.get(KEY); if(r&&r.value) state=JSON.parse(r.value); storageOk=true; }
+  catch(e){ storageOk=false; }
   if(!state.stones) state.stones=[];
   route();
 }
 let st=null;
-function save(){ clearTimeout(st); st=setTimeout(async()=>{
-  try{ await window.storage.set(KEY, JSON.stringify(state)); }catch(e){}
+function save(){ if(viewOnly) return; clearTimeout(st); st=setTimeout(async()=>{
+  try{ await window.fusekiStore.set(KEY, JSON.stringify(state)); }catch(e){}
 },400); }
 
 /* ---------- age bands ---------- */
+// 24歳以下は、学校の区切りで輪を引く（short は盤の左端に出す短い名前）
+function isYouth(){ return (state.age||40) <= 24; }
+const YOUTH_BANDS=[
+  {lo:0, hi:11,label:"小学校まで",short:"小学"},
+  {lo:12,hi:14,label:"中学",short:"中学"},
+  {lo:15,hi:17,label:"高校",short:"高校"},
+  {lo:18,hi:24,label:"それ以降",short:"以降"}
+];
 function bands(){
   const age=state.age||40;
+  if(isYouth()) return YOUTH_BANDS.map(b=>Object.assign({},b));
   const arr=[{lo:0,hi:9,label:"〜9歳"}];
   if(age<=39){ for(let lo=10;lo<=35;lo+=5) arr.push({lo,hi:lo+4,label:lo+"–"+(lo+4)}); }
   else{ const last=Math.max(60,Math.floor(age/10)*10);
@@ -961,11 +1147,14 @@ const SHAPE_MSG={
   square:"なぜか周期的に、このテーマに戻されているようです。それは、すでにあなたの道なのかもしれません。",
   zigzag:"なぜか、一気にこのテーマに戻される時期があるようです。それは、すでにあなたの道なのかもしれません。"
 };
+const YOUTH_INVERSE="最近になって、新しい世界が広がっているようです。さらに石を置くことにワクワクしますか？";
+function shapeMsg(shape){ return (shape==="inverse" && isYouth()) ? YOUTH_INVERSE : SHAPE_MSG[shape]; }
 function shapeOf(){
   const bs=bands(), nowBand=bandOf(state.age);
   const counts=bs.map((b,i)=>state.stones.filter(s=>bandOf(s.age)===i).length);
   const total=counts.reduce((a,b)=>a+b,0);
-  const youngCount=bs.reduce((sum,b,i)=> sum + (b.hi<=19 ? counts[i] : 0), 0);
+  const youngHi=isYouth() ? 14 : 19;   // 24歳以下の盤では中学まで
+  const youngCount=bs.reduce((sum,b,i)=> sum + (b.hi<=youngHi ? counts[i] : 0), 0);
   const nowCount=counts[nowBand]||0;
   if(youngCount>=5) return "triangle";
   if(nowCount>=5) return "inverse";
@@ -998,7 +1187,7 @@ function boardSVG(forExport){
   }
   // 帯ラベル（左端の外に小さく）
   for(let i=0;i<rows;i++){
-    g+=`<text x="${EDGE-6}" y="${bandY(i)+4}" text-anchor="end" font-family="Zen Kaku Gothic New, sans-serif" font-size="12" fill="#8b93a6">${esc(bs[i].label)}</text>`;
+    g+=`<text x="${EDGE-6}" y="${bandY(i)+4}" text-anchor="end" font-family="Zen Kaku Gothic New, sans-serif" font-size="12" fill="#8b93a6">${esc(bs[i].short||bs[i].label)}</text>`;
   }
 
   // 上辺のテーマ（＝タイトル）／未設定なら「＋テーマ」
@@ -1051,7 +1240,7 @@ function readingHTML(){
   if(state.stones.length===0) return `<div class="empty">まだ石がありません</div>`;
   const shape=shapeOf(), nw=narrowing();
   let html="";
-  if(shape) html+=`<span class="rt">${SHAPE_NAME[shape]}</span><div class="rm"><b>${esc(state.theme)}</b>——${SHAPE_MSG[shape]}</div>`;
+  if(shape) html+=`<span class="rt">${SHAPE_NAME[shape]}</span><div class="rm"><b>${esc(state.theme)}</b>——${shapeMsg(shape)}</div>`;
   if(nw) html+=`<div class="rm"${shape?' style="margin-top:8px"':''}><b>${esc(state.theme)}</b>——還ってくる間隔が縮まってきています（${nw.early.map(String).join("・")}年 → ${nw.late.map(String).join("・")}年）。そのテーマは、道になりかけているかもしれません。</div>`;
   if(html) return html;
   return `<div class="rm">もう少し石が増えると、表示されます。</div>`;
@@ -1065,8 +1254,10 @@ function route(){
   if(opened) render();
 }
 function render(){
-  document.getElementById("m_boardWrap").innerHTML=boardSVG(false);
+  document.getElementById("m_boardWrap").innerHTML=boardSVG(viewOnly);
   document.getElementById("m_reading").innerHTML=readingHTML();
+  ["m_btnShare","m_btnReset"].forEach(id=> document.getElementById(id).classList.toggle("hidden", viewOnly));
+  if(viewOnly) return;   // 共有された盤は見るだけ
   ROOT.querySelectorAll(".addChip").forEach(el=> el.addEventListener("click", addTheme));
   ROOT.querySelectorAll(".cellHit[data-band]").forEach(el=>{
     const go=()=>openAge(+el.dataset.band);
@@ -1096,11 +1287,12 @@ function openAge(band){
   sheetBand=band; editingId=null;
   const b=bands()[band];
   const hi=Math.min(b.hi, state.age);
+  if(hi<b.lo){ toast("まだこれからの年代です"); return; }
   let tiles="";
   for(let a=b.lo; a<=hi; a++) tiles+=`<button class="ageTile" data-age="${a}">${a}</button>`;
   openSheet(`
     <h2>${esc(state.theme)}</h2>
-    <div class="sub">${b.lo}〜${b.hi}歳のどのあたり？　だいたいでOK</div>
+    <div class="sub">${isYouth()? esc(b.label)+"（"+b.lo+"〜"+hi+"歳）" : b.lo+"〜"+b.hi+"歳"}のどのあたり？　だいたいでOK</div>
     <div class="ageGrid">${tiles}</div>
     <div class="sheetFoot"><button id="sheetCancel">やめる</button></div>`);
   sheet.querySelectorAll("[data-age]").forEach(t=> t.addEventListener("click", ()=> placeStone(+t.dataset.age)));
@@ -1153,28 +1345,39 @@ suGo.addEventListener("click", ()=>{
 });
 
 /* ---------- actions ---------- */
-document.getElementById("m_btnSave").addEventListener("click", ()=>{
-  const svgStr=boardSVG(true);
-  const img=new Image();
+document.getElementById("m_btnSave").addEventListener("click", async()=>{
+  const svgStr=await window.fusekiEmbedFonts(boardSVG(true));
   const blob=new Blob([svgStr],{type:"image/svg+xml;charset=utf-8"});
   const url=URL.createObjectURL(blob);
-  img.onload=()=>{
+  try{
+    const img=await window.fusekiLoadImage(url);
     const cv=document.createElement("canvas"); cv.width=1040; cv.height=1040;
     const ctx=cv.getContext("2d"); ctx.fillStyle="#fff"; ctx.fillRect(0,0,1040,1040);
-    ctx.drawImage(img,0,0,1040,1040); URL.revokeObjectURL(url);
+    ctx.drawImage(img,0,0,1040,1040);
     const a=document.createElement("a");
     a.download=(state.theme||"fuseki")+"_布石マンダラ.png";
     a.href=cv.toDataURL("image/png"); a.click();
     toast("画像を保存しました");
-  };
-  img.onerror=()=>{ URL.revokeObjectURL(url); toast("保存に失敗しました"); };
-  img.src=url;
+  }catch(e){ toast("保存に失敗しました"); }
+  finally{ URL.revokeObjectURL(url); }
 });
 document.getElementById("m_btnReset").addEventListener("click", async()=>{
   if(!confirm("盤をまっさらに戻します。よろしいですか？")) return;
   state={ age:0, theme:"", stones:[] };
-  try{ await window.storage.delete(KEY); }catch(e){}
+  try{ await window.fusekiStore.delete(KEY); }catch(e){}
   ageInp.value=""; suGo.disabled=true; route();
+});
+
+/* ---------- 共有 ---------- */
+document.getElementById("m_btnShare").addEventListener("click", async()=>{
+  if(!state.theme && !state.stones.length){ toast("テーマや石を置いてから共有してください"); return; }
+  const url=await window.fusekiShare.link("m", toShare());
+  if(navigator.share){
+    try{ await navigator.share({title:"布石マンダラ", url}); return; }
+    catch(e){ if(e && e.name==="AbortError") return; }
+  }
+  const ok=await window.fusekiShare.copy(url);
+  if(ok) toast("共有用のリンクをコピーしました");
 });
 
 load();
